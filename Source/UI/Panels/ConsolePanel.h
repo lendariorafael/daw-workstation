@@ -12,7 +12,7 @@ public:
     explicit ChannelStrip(ProjectModel& m) : model(m)
     {
         name.setJustificationType(juce::Justification::centred);
-        name.setFont(DawLookAndFeel::uiFont(12.0f, true));
+        name.setFont(DawLookAndFeel::uiFont(10.0f, true));
         name.setColour(juce::Label::textColourId, DawLookAndFeel::text);
 
         fader.setSliderStyle(juce::Slider::LinearVertical);
@@ -62,7 +62,7 @@ public:
         };
 
         fxList.setModel(this);
-        fxList.setRowHeight(18);
+        fxList.setRowHeight(15);
         fxList.setColour(juce::ListBox::backgroundColourId, DawLookAndFeel::background);
 
         addAndMakeVisible(name);
@@ -115,15 +115,15 @@ public:
     void resized() override
     {
         auto area = getLocalBounds().reduced(6);
-        name.setBounds(area.removeFromTop(22));
+        name.setBounds(area.removeFromTop(19));
         area.removeFromTop(4);
 
-        auto row = area.removeFromTop(22);
+        auto row = area.removeFromTop(18);
         mute.setBounds(row.removeFromLeft(row.getWidth() / 2).reduced(2, 0));
         solo.setBounds(row.reduced(2, 0));
 
         area.removeFromTop(6);
-        fxList.setBounds(area.removeFromTop(10 * 18 + 4));
+        fxList.setBounds(area.removeFromTop(4 * 15 + 4));
         area.removeFromTop(6);
 
         pan.setBounds(area.removeFromBottom(22));
@@ -232,7 +232,7 @@ class ConsolePanel : public juce::Component,
                      private juce::Timer
 {
 public:
-    static constexpr int stripWidth = 104;
+    static constexpr int stripWidth = 82;
     static constexpr int poolSize = 48;
 
     explicit ConsolePanel(ProjectModel& m) : model(m)
@@ -252,7 +252,7 @@ public:
 
         masterLabel.setText("MASTER", juce::dontSendNotification);
         masterLabel.setJustificationType(juce::Justification::centred);
-        masterLabel.setFont(DawLookAndFeel::uiFont(12.0f, true));
+        masterLabel.setFont(DawLookAndFeel::uiFont(10.0f, true));
         masterLabel.setColour(juce::Label::textColourId, DawLookAndFeel::accent);
         addAndMakeVisible(masterLabel);
 
@@ -280,8 +280,8 @@ public:
     void resized() override
     {
         auto area = getLocalBounds();
-        auto master = area.removeFromRight(128).reduced(8);
-        masterLabel.setBounds(master.removeFromTop(22));
+        auto master = area.removeFromRight(94).reduced(5);
+        masterLabel.setBounds(master.removeFromTop(20));
         masterFader.setBounds(master);
         viewport.setBounds(area);
         layoutStrips();
