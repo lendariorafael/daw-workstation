@@ -14,6 +14,7 @@ MainComponent::MainComponent()
     setWantsKeyboardFocus(true);
 
     loadAudioButton.onClick = [this] { loadAudio(); };
+    startButton.onClick = [this] { engine.seek(0.0); engine.play(); };
     playButton.onClick = [this] { engine.play(); };
     stopButton.onClick = [this] { engine.stop(); };
     recordButton.setTooltip("Audio recording is not available in this build yet.");
@@ -74,6 +75,7 @@ MainComponent::MainComponent()
              static_cast<juce::Component*>(&saveButton),
              static_cast<juce::Component*>(&saveAsButton),
              static_cast<juce::Component*>(&loadAudioButton),
+             static_cast<juce::Component*>(&startButton),
              static_cast<juce::Component*>(&playButton),
              static_cast<juce::Component*>(&stopButton),
              static_cast<juce::Component*>(&recordButton),
@@ -176,6 +178,8 @@ void MainComponent::refreshTexts()
     saveButton.setButtonText(I18n::t("file.save"));
     saveAsButton.setButtonText(I18n::t("file.saveAs"));
     loadAudioButton.setButtonText(I18n::t("audio.load"));
+    startButton.setButtonText("|◀");
+    startButton.setTooltip("Start playback from the beginning");
     playButton.setButtonText("▶");
     stopButton.setButtonText("■");
     recordButton.setButtonText("● REC");
@@ -810,6 +814,8 @@ void MainComponent::resized()
     transport.removeFromLeft(10);
     loadAudioButton.setBounds(transport.removeFromLeft(94));
     transport.removeFromLeft(8);
+    startButton.setBounds(transport.removeFromLeft(42));
+    transport.removeFromLeft(4);
     playButton.setBounds(transport.removeFromLeft(38));
     transport.removeFromLeft(4);
     stopButton.setBounds(transport.removeFromLeft(38));
