@@ -7,8 +7,8 @@ Este ficheiro é a autoridade do projeto. Lê-o antes de qualquer alteração.
 - DAW profissional para Windows 10/11 x64, de código aberto sob GPLv3.
 - Repositório público. Pode ser vendido em binários ou com serviços, mas o código-fonte
   tem de continuar disponível para quem recebe a aplicação (exigência da GPLv3).
-- **Nome final ainda não definido.** Usar o nome provisório `DAWWorkstation`
-  (namespace, nomes de projeto e de target). Não introduzir outros nomes de produto.
+- Nome do produto: **Opalo**. Usar este nome em namespaces, targets, título da janela e artefactos.
+  Não introduzir outros nomes de produto.
 - Comunicação com o developer em português. Identificadores C++, nomes de ficheiros e
   convenções técnicas em inglês.
 

@@ -1,4 +1,4 @@
-// DAW Workstation: ponto de entrada.
+// Opalo: ponto de entrada.
 
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "UI/DawLookAndFeel.h"
@@ -30,7 +30,7 @@ private:
 class DAWApplication : public juce::JUCEApplication
 {
 public:
-    const juce::String getApplicationName() override    { return "DAW Workstation"; }
+    const juce::String getApplicationName() override    { return "Opalo"; }
     const juce::String getApplicationVersion() override { return "0.1.0"; }
     bool moreThanOneInstanceAllowed() override          { return true; }
 

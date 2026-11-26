@@ -1,4 +1,4 @@
-# DAW Workstation (nome provisório)
+# Opalo
 
 Digital Audio Workstation profissional para Windows, em desenvolvimento.
 

@@ -40,6 +40,12 @@ Estado real de cada fase. Atualizar apenas quando o item estiver verificado.
 - [ ] Routing entre canais.
 - [ ] Acesso aos mesmos plugins a partir da Playlist, do Mixer e de janelas independentes.
 
+## Identidade visual
+
+- [x] Marca Opalo (gema de opala com brilho iridescente e nome em letras espaçadas).
+- [x] Ecrã de arranque animado.
+- [ ] Ícone do executável e da barra de tarefas.
+
 ## Fora do escopo por agora
 
 - VST2.

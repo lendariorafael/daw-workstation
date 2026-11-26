@@ -3,6 +3,8 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "../AudioEngine/AudioEngine.h"
 #include "DawLookAndFeel.h"
+#include "OpaloLogo.h"
+#include "SplashScreen.h"
 #include "WaveformView.h"
 
 class MainComponent : public juce::Component,
@@ -25,6 +27,7 @@ private:
     DawLookAndFeel lookAndFeel;
     AudioEngine engine;
 
+    OpaloLogo topLogo;
     juce::TextButton openButton  { "Open" };
     juce::TextButton playButton  { "Play" };
     juce::TextButton stopButton  { "Stop" };
@@ -34,6 +37,7 @@ private:
     WaveformView waveform { engine.getFormatManager() };
 
     std::unique_ptr<juce::FileChooser> chooser;
+    std::unique_ptr<SplashScreen> splash;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

@@ -23,7 +23,8 @@ MainComponent::MainComponent()
 
     waveform.onSeek = [this](double seconds) { engine.seek(seconds); };
 
-    for (auto* c : { static_cast<juce::Component*>(&openButton),
+    for (auto* c : { static_cast<juce::Component*>(&topLogo),
+                     static_cast<juce::Component*>(&openButton),
                      static_cast<juce::Component*>(&playButton),
                      static_cast<juce::Component*>(&stopButton),
                      static_cast<juce::Component*>(&volumeSlider),
@@ -34,6 +35,20 @@ MainComponent::MainComponent()
 
     setSize(1200, 680);
     startTimerHz(30);
+
+    // Ecrã de arranque por cima de tudo. Quando termina, é removido de forma segura.
+    splash = std::make_unique<SplashScreen>();
+    addAndMakeVisible(*splash);
+    splash->setBounds(getLocalBounds());
+    splash->onFinished = [safe = juce::Component::SafePointer<MainComponent>(this)]
+    {
+        juce::MessageManager::callAsync([safe]
+        {
+            if (auto* self = safe.getComponent())
+                self->splash.reset();
+        });
+    };
+
     updateControls();
 }
 
@@ -58,6 +73,8 @@ void MainComponent::resized()
 {
     auto bar = getLocalBounds().removeFromTop(64).reduced(16, 12);
 
+    topLogo.setBounds(bar.removeFromLeft(200));
+    bar.removeFromLeft(12);
     openButton.setBounds(bar.removeFromLeft(96));
     bar.removeFromLeft(8);
     playButton.setBounds(bar.removeFromLeft(72));
@@ -73,6 +90,9 @@ void MainComponent::resized()
     fileLabel.setBounds(bar);
 
     waveform.setBounds(getLocalBounds().withTrimmedTop(64).reduced(16));
+
+    if (splash != nullptr)
+        splash->setBounds(getLocalBounds());
 }
 
 void MainComponent::timerCallback()
@@ -80,6 +100,7 @@ void MainComponent::timerCallback()
     timeLabel.setText(formatTime(engine.getPosition()) + " / " + formatTime(engine.getLength()),
                       juce::dontSendNotification);
     waveform.setPlayhead(engine.getPosition(), engine.getLength());
+    topLogo.setPhase(static_cast<float> (juce::Time::getMillisecondCounterHiRes() / 6000.0));
     updateControls();
 }
 
