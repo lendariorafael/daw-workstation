@@ -19,6 +19,48 @@
 #include "../I18n/Strings.h"
 #include "../Settings/OpaloSettings.h"
 
+
+class OpaloIconButton : public juce::TextButton
+{
+public:
+    enum class Icon { Browser, Playlist, Mixer, Patterns, Notes, Plugins, Decks, Automation, Settings };
+    explicit OpaloIconButton(Icon i) : icon(i) { setButtonText({}); setMouseCursor(juce::MouseCursor::PointingHandCursor); }
+    void paint(juce::Graphics& g) override
+    {
+        auto r=getLocalBounds().toFloat().reduced(2.0f);
+        const auto bg=getToggleState()?DawLookAndFeel::accentDim:(isMouseOver()?DawLookAndFeel::panelLight:DawLookAndFeel::panel);
+        g.setColour(bg); g.fillRoundedRectangle(r,5.0f);
+        g.setColour(getToggleState()?DawLookAndFeel::accent:DawLookAndFeel::text.withAlpha(0.88f));
+        const auto c=r.getCentre(); const float x=c.x,y=c.y;
+        const float sw=1.7f;
+        auto line=[&](float x1,float y1,float x2,float y2){g.drawLine(x1,y1,x2,y2,sw);};
+        switch(icon)
+        {
+            case Icon::Browser:
+                g.drawRoundedRectangle(x-7,y-7,14,14,2,sw); line(x-4,y-3,x+4,y-3); line(x-4,y,x+3,y); line(x-4,y+3,x+1,y+3); break;
+            case Icon::Playlist:
+                g.drawRoundedRectangle(x-8,y-7,16,14,2,sw); line(x-5,y-3,x+5,y-3); line(x-5,y,x+5,y); line(x-5,y+3,x+2,y+3); break;
+            case Icon::Mixer:
+                for(int k=-1;k<=1;++k){line(x+k*5,y-7,x+k*5,y+7);g.fillEllipse(x+k*5-2,y+(k==0?-1:(k<0?2:-4))-2,4,4);} break;
+            case Icon::Patterns:
+                for(int row=0;row<3;++row) for(int col=0;col<3;++col){g.drawRoundedRectangle(x-7+col*5.5f,y-6+row*5.5f,4,4,1,sw);} break;
+            case Icon::Notes:
+                line(x-2,y-6,x-2,y+3); line(x-2,y-6,x+5,y-8); line(x+5,y-8,x+5,y+1); g.drawEllipse(x-7,y+1,6,4,sw); g.drawEllipse(x,y-1,6,4,sw); break;
+            case Icon::Plugins:
+                {juce::Path p; p.addPolygon({x,y-8,x+7,y,x,y+8,x-7,y},4); g.strokePath(p,juce::PathStrokeType(sw)); line(x-4,y,x+4,y);} break;
+            case Icon::Decks:
+                g.drawEllipse(x-7,y-7,14,14,sw); g.drawEllipse(x-3,y-3,6,6,sw); g.fillEllipse(x-1,y-1,2,2); break;
+            case Icon::Automation:
+                {juce::Path p;p.startNewSubPath(x-8,y+5);p.lineTo(x-3,y+1);p.lineTo(x+1,y+3);p.lineTo(x+7,y-6);g.strokePath(p,juce::PathStrokeType(sw));} g.fillEllipse(x-5,y-1,4,4);g.fillEllipse(x-1,y+1,4,4);g.fillEllipse(x+5,y-8,4,4); break;
+            case Icon::Settings:
+                g.drawEllipse(x-6,y-6,12,12,sw); g.drawEllipse(x-2,y-2,4,4,sw);
+                for(int k=0;k<8;++k){const float a=k*juce::MathConstants<float>::pi/4.0f;line(x+7*std::cos(a),y+7*std::sin(a),x+9*std::cos(a),y+9*std::sin(a));} break;
+        }
+    }
+private:
+    Icon icon;
+};
+
 class MainComponent : public juce::Component,
                       private juce::Timer,
                       private juce::ChangeListener
@@ -103,15 +145,15 @@ private:
     juce::Label timeLabel;
     WaveformView waveform { engine.getFormatManager() };
 
-    juce::TextButton browserButton   { "Browser" };
-    juce::TextButton timelineButton  { "Playlist" };
-    juce::TextButton consoleButton   { "Mixer" };
-    juce::TextButton beatButton      { "Patterns" };
-    juce::TextButton noteButton      { "Note Canvas" };
-    juce::TextButton vaultButton     { "Plugin Vault" };
-    juce::TextButton mashupButton    { "Mashup" };
-    juce::TextButton settingsButton  { "Settings" };
-    juce::TextButton automationButton { "Automation" };
+    OpaloIconButton browserButton   { OpaloIconButton::Icon::Browser } "Browser" };
+    OpaloIconButton timelineButton  { OpaloIconButton::Icon::Playlist } "Playlist" };
+    OpaloIconButton consoleButton   { OpaloIconButton::Icon::Mixer } "Mixer" };
+    OpaloIconButton beatButton      { "Patterns" };
+    OpaloIconButton noteButton      { "Note Canvas" };
+    OpaloIconButton vaultButton     { "Plugin Vault" };
+    OpaloIconButton mashupButton    { "Mashup" };
+    OpaloIconButton settingsButton  { OpaloIconButton::Icon::Settings } "Settings" };
+    OpaloIconButton automationButton { OpaloIconButton::Icon::Automation } "Automation" };
 
     juce::TextButton newButton    { "New" };
     juce::TextButton openButton   { "Open" };
