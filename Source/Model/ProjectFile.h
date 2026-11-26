@@ -63,6 +63,7 @@ namespace OpaloFile
             e->setAttribute("muted", ch.muted ? 1 : 0);
             e->setAttribute("soloed", ch.soloed ? 1 : 0);
             e->setAttribute("mono", ch.mono ? 1 : 0);
+            e->setAttribute("outputBus", 0);
             e->setAttribute("volume", (double) ch.volume);
             e->setAttribute("pan", (double) ch.pan);
             e->setAttribute("steps", stepsToString(ch.steps));
@@ -148,6 +149,7 @@ namespace OpaloFile
                 ch.muted = e->getIntAttribute("muted") != 0;
                 ch.soloed = e->getIntAttribute("soloed") != 0;
                 ch.mono = e->getIntAttribute("mono") != 0;
+                ch.outputBus = 0; // All current tracks feed the master bus.
                 ch.volume = (float) juce::jlimit(0.0, 1.0, e->getDoubleAttribute("volume", 0.8));
                 ch.pan = (float) juce::jlimit(-1.0, 1.0, e->getDoubleAttribute("pan", 0.0));
                 const auto steps = e->getStringAttribute("steps");
