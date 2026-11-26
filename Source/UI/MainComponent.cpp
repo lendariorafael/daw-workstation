@@ -124,22 +124,22 @@ MainComponent::MainComponent()
     bindPanel(mashupButton, *mashupWindow);
     bindPanel(settingsButton, *settingsWindow);
 
-    browserButton.setButtonText("▤  Browser");
-    timelineButton.setButtonText("▦  Playlist");
-    consoleButton.setButtonText("▥  Mixer");
-    beatButton.setButtonText("☷  Channel Rack");
-    noteButton.setButtonText("♫  Piano Roll");
-    vaultButton.setButtonText("◈  Plugins");
-    mashupButton.setButtonText("◉  Mashup");
-    settingsButton.setButtonText("⚙  Settings");
+    browserButton.setButtonText("⌕");
+    timelineButton.setButtonText("▦");
+    consoleButton.setButtonText("▥");
+    beatButton.setButtonText("▧");
+    noteButton.setButtonText("♫");
+    vaultButton.setButtonText("◇");
+    mashupButton.setButtonText("◉");
+    settingsButton.setButtonText("⚙");
 
-    browserButton.setTooltip("Show or hide the sound browser");
-    timelineButton.setTooltip("Show or hide the Playlist");
-    consoleButton.setTooltip("Show or hide the Mixer");
-    beatButton.setTooltip("Show or hide the Channel Rack");
-    noteButton.setTooltip("Show or hide the Piano Roll");
-    vaultButton.setTooltip("Show or hide the VST3 Plugin Vault");
-    mashupButton.setTooltip("Show or hide the DJ Mashup decks");
+    browserButton.setTooltip("Browser — show or hide sound library");
+    timelineButton.setTooltip("Playlist — show or hide arrangement");
+    consoleButton.setTooltip("Mixer — show or hide channel mixer");
+    beatButton.setTooltip("Patterns — show or hide pattern editor");
+    noteButton.setTooltip("Note editor — show or hide");
+    vaultButton.setTooltip("Plugin library — show or hide");
+    mashupButton.setTooltip("DJ decks — show or hide");
 
     refreshTexts();
     loadRecentList();
@@ -185,14 +185,14 @@ void MainComponent::refreshTexts()
     stopButton.setButtonText("■");
     recordButton.setButtonText("● REC");
 
-    browserButton.setButtonText("▤  Browser");
-    timelineButton.setButtonText("▦  Playlist");
-    consoleButton.setButtonText("▥  Mixer");
-    beatButton.setButtonText("☷  Channel Rack");
-    noteButton.setButtonText("♫  Piano Roll");
-    vaultButton.setButtonText("◈  Plugins");
-    mashupButton.setButtonText("◉  Mashup");
-    settingsButton.setButtonText("⚙  Settings");
+    browserButton.setButtonText("⌕");
+    timelineButton.setButtonText("▦");
+    consoleButton.setButtonText("▥");
+    beatButton.setButtonText("▧");
+    noteButton.setButtonText("♫");
+    vaultButton.setButtonText("◇");
+    mashupButton.setButtonText("◉");
+    settingsButton.setButtonText("⚙");
 }
 
 void MainComponent::bindPanel(juce::TextButton& button, PanelWindow& window)
@@ -354,19 +354,21 @@ void MainComponent::applyLayoutPreset(int preset)
                          mashupWindow.get(), settingsWindow.get() })
         panel->setVisible(false);
 
-    if (preset == 0) // Studio Default
+    if (preset == 0) // Opalo Studio — arrangement above, mixer below
     {
-        browserWindow->setBounds(area.getX(), area.getY(), browserW, workH);
-        const int playlistHeight = workH * 40 / 100;
-        const int rackHeight = juce::jmax(150, workH * 22 / 100);
-        const int mixerHeight = juce::jmax(150, workH - playlistHeight - rackHeight - gap * 2);
-        timelineWindow->setBounds(workX, area.getY(), workW, playlistHeight);
-        beatWindow->setBounds(workX, area.getY() + playlistHeight + gap, workW, rackHeight);
-        consoleWindow->setBounds(workX, area.getY() + playlistHeight + rackHeight + gap * 2,
-                                  workW, mixerHeight);
-        browserWindow->setVisible(true);
+        // Layout principal inspirado na referência: Playlist ampla e Mixer fixo na base.
+        // Browser e Patterns ficam disponíveis por ícone, sem ocupar espaço no arranque.
+        const int playlistHeight = juce::jlimit(300, workH - 230, workH * 57 / 100);
+        const int mixerY = area.getY() + playlistHeight + gap;
+        const int mixerHeight = juce::jmax(190, area.getBottom() - mixerY);
+        browserWindow->setBounds(area.getRight() - juce::jmin(300, area.getWidth() / 3),
+                                 area.getY() + 22, juce::jmin(300, area.getWidth() / 3),
+                                 juce::jmin(560, workH - 44));
+        timelineWindow->setBounds(area.getX(), area.getY(), area.getWidth(), playlistHeight);
+        consoleWindow->setBounds(area.getX(), mixerY, area.getWidth(), mixerHeight);
+        browserWindow->setVisible(false);
         timelineWindow->setVisible(true);
-        beatWindow->setVisible(true);
+        beatWindow->setVisible(false);
         consoleWindow->setVisible(true);
     }
     else if (preset == 1) // Arrangement Focus
@@ -859,14 +861,22 @@ void MainComponent::resized()
     fileLabel.setBounds(transport);
 
     auto shortcuts = getLocalBounds().withTrimmedTop(86).removeFromTop(46).reduced(10, 6);
-    browserButton.setBounds(shortcuts.removeFromLeft(104));
-    timelineButton.setBounds(shortcuts.removeFromLeft(112));
-    beatButton.setBounds(shortcuts.removeFromLeft(132));
-    consoleButton.setBounds(shortcuts.removeFromLeft(94));
-    noteButton.setBounds(shortcuts.removeFromLeft(116));
-    vaultButton.setBounds(shortcuts.removeFromLeft(100));
-    mashupButton.setBounds(shortcuts.removeFromLeft(102));
-    settingsButton.setBounds(shortcuts.removeFromRight(108));
+    browserButton.setBounds(shortcuts.removeFromLeft(38));
+    timelineButton.setBounds(shortcuts.removeFromLeft(38));
+    beatButton.setBounds(shortcuts.removeFromLeft(38));
+    consoleButton.setBounds(shortcuts.removeFromLeft(38));
+    noteButton.setBounds(shortcuts.removeFromLeft(38));
+    vaultButton.setBounds(shortcuts.removeFromLeft(38));
+    mashupButton.setBounds(shortcuts.removeFromLeft(38));
+    settingsButton.setBounds(shortcuts.removeFromRight(38));
+    for (auto* button : { &browserButton, &timelineButton, &beatButton, &consoleButton,
+                          &noteButton, &vaultButton, &mashupButton, &settingsButton })
+    {
+        button->setColour(juce::TextButton::buttonColourId, OpaloDesign::surface1);
+        button->setColour(juce::TextButton::buttonOnColourId, OpaloDesign::accentDim);
+        button->setColour(juce::TextButton::textColourOffId, OpaloDesign::text);
+        button->setColour(juce::TextButton::textColourOnId, OpaloDesign::background);
+    }
 
     waveform.setBounds(getLocalBounds().withTrimmedTop(getHeight() - 40).reduced(10, 4));
 
