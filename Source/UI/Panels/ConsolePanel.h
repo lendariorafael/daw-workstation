@@ -16,13 +16,13 @@ public:
         name.setColour(juce::Label::textColourId, DawLookAndFeel::text);
 
         fader.setSliderStyle(juce::Slider::LinearVertical);
-        fader.setRange(0.0, 1.0, 0.001);
+        fader.setRange(0.0, 100.0, 0.1);
         fader.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 56, 18);
         fader.onValueChange = [this]
         {
             if (auto* c = channel())
             {
-                c->volume = (float) fader.getValue();
+                c->volume = (float) (fader.getValue() / 100.0);
                 model.changed();
             }
         };
@@ -100,7 +100,7 @@ public:
             return;
 
         name.setText(c->name, juce::dontSendNotification);
-        fader.setValue(c->volume, juce::dontSendNotification);
+        fader.setValue(c->volume * 100.0, juce::dontSendNotification);
         pan.setValue(c->pan, juce::dontSendNotification);
         mute.setToggleState(c->muted, juce::dontSendNotification);
         solo.setToggleState(c->soloed, juce::dontSendNotification);
@@ -262,7 +262,7 @@ public:
             strips.back()->setVisible(false);
         }
 
-        masterLabel.setText("MASTER", juce::dontSendNotification);
+        masterLabel.setText("MASTER  ·  OUT", juce::dontSendNotification);
         masterLabel.setJustificationType(juce::Justification::centred);
         masterLabel.setFont(DawLookAndFeel::uiFont(10.0f, true));
         masterLabel.setColour(juce::Label::textColourId, DawLookAndFeel::accent);
@@ -274,10 +274,10 @@ public:
         addAndMakeVisible(masterFxList);
 
         masterFader.setSliderStyle(juce::Slider::LinearVertical);
-        masterFader.setRange(0.0, 1.0, 0.001);
+        masterFader.setRange(0.0, 100.0, 0.1);
         masterFader.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 56, 18);
-        masterFader.setValue(model.masterVolume, juce::dontSendNotification);
-        masterFader.onValueChange = [this] { model.masterVolume = (float) masterFader.getValue(); };
+        masterFader.setValue(model.masterVolume * 100.0, juce::dontSendNotification);
+        masterFader.onValueChange = [this] { model.masterVolume = (float) (masterFader.getValue() / 100.0); };
         addAndMakeVisible(masterFader);
 
         startTimerHz(30);
