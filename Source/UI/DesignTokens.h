@@ -7,17 +7,17 @@
 namespace OpaloDesign
 {
     // Superfícies em camadas: quanto mais clara, mais "perto" do utilizador.
-    inline const juce::Colour background { (juce::uint32) 0xff0b0d11 };
-    inline const juce::Colour surface0   { (juce::uint32) 0xff12151b };
-    inline const juce::Colour surface1   { (juce::uint32) 0xff1a1f27 };
-    inline const juce::Colour surface2   { (juce::uint32) 0xff232a35 };
-    inline const juce::Colour border     { (juce::uint32) 0xff2a313d };
+    inline const juce::Colour background { (juce::uint32) 0xff151a22 };
+    inline const juce::Colour surface0   { (juce::uint32) 0xff1c232d };
+    inline const juce::Colour surface1   { (juce::uint32) 0xff27313e };
+    inline const juce::Colour surface2   { (juce::uint32) 0xff344153 };
+    inline const juce::Colour border     { (juce::uint32) 0xff435064 };
 
-    inline const juce::Colour accent     { (juce::uint32) 0xff2fe3c6 };
-    inline const juce::Colour accentDim  { (juce::uint32) 0xff1d8c7b };
+    inline const juce::Colour accent     { (juce::uint32) 0xff39d8c1 };
+    inline const juce::Colour accentDim  { (juce::uint32) 0xff267f77 };
 
     inline const juce::Colour text       { (juce::uint32) 0xffe8ecf2 };
-    inline const juce::Colour textMuted  { (juce::uint32) 0xff8a94a3 };
+    inline const juce::Colour textMuted  { (juce::uint32) 0xffa8b4c4 };
     inline const juce::Colour danger     { (juce::uint32) 0xffff6b6b };
 
     constexpr float radiusSmall  = 4.0f;
