@@ -90,13 +90,13 @@ public:
             if (resizing)
                 setSize(juce::jlimit(280, juce::jmax(280, parentBounds.getWidth() - getX()),
                                      originalBounds.getWidth() + delta.x),
-                        juce::jlimit(150, juce::jmax(150, parentBounds.getBottom() - getY()),
+                        juce::jlimit(150, juce::jmax(150, parentBounds.getBottom() - 40 - getY()),
                                      originalBounds.getHeight() + delta.y));
             else if (dragging)
             {
                 const int newX = juce::jlimit(0, juce::jmax(0, parentBounds.getWidth() - getWidth()),
                                               originalBounds.getX() + delta.x);
-                const int newY = juce::jlimit(132, juce::jmax(132, parentBounds.getBottom() - getHeight()),
+                const int newY = juce::jlimit(132, juce::jmax(132, parentBounds.getBottom() - 40 - getHeight()),
                                               originalBounds.getY() + delta.y);
                 setTopLeftPosition(newX, newY);
             }
