@@ -308,6 +308,7 @@ public:
 
     void refresh()
     {
+        masterFxList.updateContent();
         layoutStrips();
         repaint();
     }
@@ -386,5 +387,6 @@ private:
     std::vector<std::unique_ptr<ChannelStrip>> strips;
     int firstVisible = 0;
     juce::Label masterLabel;
+    juce::ListBox masterFxList;
     juce::Slider masterFader;
 };
