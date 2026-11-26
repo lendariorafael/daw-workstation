@@ -56,7 +56,7 @@ struct ChannelData
 class ProjectModel : public juce::ChangeBroadcaster
 {
 public:
-    static constexpr int maxChannels = 1000;
+    static constexpr int maxChannels = 250;
     static constexpr int initialChannels = 8;
     static constexpr int numSteps = 16;
     static constexpr int maxEffectsPerChannel = ChannelData::kMaxEffects;
