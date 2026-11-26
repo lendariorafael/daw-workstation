@@ -358,7 +358,7 @@ void MainComponent::applyLayoutPreset(int preset)
     {
         // Layout principal inspirado na referência: Playlist ampla e Mixer fixo na base.
         // Browser e Patterns ficam disponíveis por ícone, sem ocupar espaço no arranque.
-        const int playlistHeight = juce::jlimit(300, workH - 230, workH * 57 / 100);
+        const int playlistHeight = juce::jlimit(280, juce::jmax(280, workH - 190), workH * 57 / 100);
         const int mixerY = area.getY() + playlistHeight + gap;
         const int mixerHeight = juce::jmax(190, area.getBottom() - mixerY);
         browserWindow->setBounds(area.getRight() - juce::jmin(300, area.getWidth() / 3),
