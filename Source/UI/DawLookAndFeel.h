@@ -18,11 +18,14 @@ public:
 
     static juce::Font uiFont(float height, bool bold = false)
     {
-        return juce::Font(juce::FontOptions().withHeight(height).withStyle(bold ? "Bold" : "Regular"));
+        return juce::Font(juce::FontOptions().withName("Segoe UI")
+                                             .withHeight(height)
+                                             .withStyle(bold ? "Bold" : "Regular"));
     }
 
     DawLookAndFeel()
     {
+        setDefaultSansSerifTypefaceName("Segoe UI");
         setColour(juce::ResizableWindow::backgroundColourId, OpaloDesign::background);
         setColour(juce::DocumentWindow::backgroundColourId, OpaloDesign::surface0);
         setColour(juce::DocumentWindow::textColourId, OpaloDesign::text);
