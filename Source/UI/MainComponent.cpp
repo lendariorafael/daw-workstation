@@ -146,7 +146,7 @@ MainComponent::MainComponent()
     model.addChangeListener(this);
     startTimerHz(30);
 
-    applyLayoutPreset(0);
+    applyLayoutPreset((int) OpaloSettings::get().getIntValue("layoutPreset", 0));
 
     splash = std::make_unique<SplashScreen>();
     addAndMakeVisible(*splash);
@@ -825,9 +825,9 @@ void MainComponent::resized()
     transport.removeFromLeft(10);
     bpmLabel.setBounds(transport.removeFromLeft(86));
     transport.removeFromLeft(10);
-    timeLabel.setBounds(transport.removeFromRight(150));
+    timeLabel.setBounds(transport.removeFromRight(100));
     transport.removeFromRight(10);
-    volumeSlider.setBounds(transport.removeFromRight(150));
+    volumeSlider.setBounds(transport.removeFromRight(120));
     transport.removeFromRight(12);
     fileLabel.setBounds(transport);
 
