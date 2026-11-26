@@ -282,7 +282,8 @@ private:
 
     juce::Rectangle<int> toolButtonBounds() const
     {
-        return { getWidth() - 292, 4, 280, rulerHeight - 8 };
+        const int width = juce::jmin(280, juce::jmax(120, getWidth() - 16));
+        return { getWidth() - width - 8, 4, width, rulerHeight - 8 };
     }
 
     // Ícone de lâmina, desenhado de propósito para ser diferente das tesouras de outros programas:
