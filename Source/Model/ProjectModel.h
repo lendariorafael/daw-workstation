@@ -56,6 +56,7 @@ struct ChannelData
     bool muted = false;
     bool soloed = false;
     bool mono = false;
+    int outputBus = 0; // 0 = MASTER
     float volume = 0.8f;
     float pan = 0.0f;
     std::array<bool, 16> steps {};
