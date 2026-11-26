@@ -71,6 +71,14 @@ public:
         addAndMakeVisible(fxList);
         addAndMakeVisible(fader);
         addAndMakeVisible(pan);
+        monoButton.setClickingTogglesState(true);
+        monoButton.setButtonText("ST");
+        monoButton.setTooltip("Switch this channel between stereo and mono.");
+        monoButton.onClick = [this]
+        {
+            if (auto* ch = channel()) { ch->mono = monoButton.getToggleState(); model.changed(); }
+        };
+        addAndMakeVisible(monoButton);
     }
 
     ~ChannelStrip() override
@@ -96,6 +104,8 @@ public:
         pan.setValue(c->pan, juce::dontSendNotification);
         mute.setToggleState(c->muted, juce::dontSendNotification);
         solo.setToggleState(c->soloed, juce::dontSendNotification);
+        monoButton.setToggleState(c->mono, juce::dontSendNotification);
+        monoButton.setButtonText(c->mono ? "MONO" : "ST");
         fxList.updateContent();
         repaint();
     }
@@ -126,7 +136,7 @@ public:
         fxList.setBounds(area.removeFromTop(4 * 15 + 4));
         area.removeFromTop(6);
 
-        pan.setBounds(area.removeFromBottom(22));
+        pan.setBounds(area.removeFromBottom(18));
         area.removeFromBottom(6);
         fader.setBounds(area);
     }
@@ -222,7 +232,7 @@ private:
     juce::TextButton solo;
     juce::ListBox fxList;
     juce::Slider fader;
-    juce::Slider pan;
+    juce::Slider pan;\n    juce::TextButton monoButton;
 };
 
 // Console: mixer com scroll horizontal. Só existem tiras suficientes para o que está no ecrã
