@@ -10,7 +10,7 @@ jobs:
     runs-on: windows-2022
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Configure
         run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
@@ -19,7 +19,7 @@ jobs:
         run: cmake --build build --config Release
 
       - name: Upload Opalo executable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: Opalo-Windows-x64
           path: build/Opalo_artefacts/Release/Opalo.exe
@@ -27,7 +27,12 @@ jobs:
 
       - name: Install Inno Setup
         if: github.event_name != 'pull_request'
-        run: choco install innosetup --yes --no-progress
+        shell: pwsh
+        run: |
+          $compiler = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $compiler)) {
+            choco install innosetup --yes --no-progress
+          }
 
       - name: Download Microsoft Visual C++ Runtime
         if: github.event_name != 'pull_request'
@@ -46,7 +51,7 @@ jobs:
 
       - name: Upload Opalo installer
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: Opalo-Installer-Windows-x64
           path: dist/Opalo-Setup-Windows-x64.exe
