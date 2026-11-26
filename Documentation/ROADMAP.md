@@ -111,6 +111,23 @@ seguro é importar por formatos abertos: MIDI (já implementado), áudio (WAV, F
 - [x] Ecrã de arranque animado.
 - [ ] Ícone do executável e da barra de tarefas.
 
+## Revisão da interface — workspace Opalo
+
+- [x] Painéis internos numa única janela principal, sem abrir janelas do sistema operativo.
+- [x] Painéis móveis e redimensionáveis dentro da área de trabalho.
+- [x] Layout padrão com Browser, Playlist, Channel Rack e Mixer visíveis em simultâneo.
+- [x] Presets de layout: Studio Default, Arrangement Focus, Mix Focus e DJ Mashup; seleção guardada nas definições.
+- [x] Barra superior organizada com File, Edit, View, Tools e Help.
+- [x] Atalhos visuais para os painéis principais.
+- [x] Transporte com Start, Play, Stop, BPM editável e controlo de volume.
+- [x] Mixer com tiras de canal mais compactas.
+- [x] Playlist com ferramentas Select, Slice, Pencil, Brush e Copy.
+- [x] Mashup com representação visual de dois decks tipo DJ e crossfader.
+- [x] Paleta com superfícies mais claras e melhor contraste; waveform preservada no rodapé.
+- [x] Definição Inno Setup e workflow Windows para gerar o instalador x64 com o runtime Microsoft.
+- [ ] Gravação de áudio de entrada: botão visível, ainda desativado até existir captura e escrita de áudio.
+- [ ] Validar visualmente a interface em execução num PC Windows e ajustar detalhes após testes de utilização.
+
 ## Fora do escopo por agora
 
 - VST2.
