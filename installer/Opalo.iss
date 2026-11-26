@@ -28,10 +28,12 @@ Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription:
 
 [Files]
 Source: "..\build\Opalo_artefacts\Release\Opalo.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
 
 [Icons]
 Name: "{group}\Opalo"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\Opalo"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
+Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing Microsoft Visual C++ Runtime..."; Flags: waituntilterminated
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch Opalo"; Flags: postinstall nowait skipifsilent
