@@ -61,8 +61,12 @@ public:
             const int x = nameWidth + juce::roundToInt(b * barW);
             const bool strong = (b % 4) == 0;
 
-            g.setColour(DawLookAndFeel::muted.withAlpha(strong ? 0.45f : 0.15f));
-            g.drawVerticalLine(x, (float) rulerHeight, (float) getHeight());
+            // Divisórias verticais tracejadas no estilo de uma grelha de arranjo profissional.
+            g.setColour(DawLookAndFeel::muted.withAlpha(strong ? 0.52f : 0.27f));
+            const float dashTop = (float) rulerHeight;
+            const float dashBottom = (float) getHeight();
+            for (float y = dashTop; y < dashBottom; y += 7.0f)
+                g.drawLine((float) x, y, (float) x, juce::jmin(y + 3.0f, dashBottom), strong ? 1.25f : 0.8f);
 
             g.setColour(strong ? DawLookAndFeel::text : DawLookAndFeel::muted);
             g.drawText(juce::String(b + 1), x + 5, 0, 40, rulerHeight, juce::Justification::centredLeft, false);
@@ -188,6 +192,39 @@ public:
         const int row = (p.y - rulerHeight + scrollY) / rowHeight;
         if (row < 0 || row >= (int) model.channels.size())
             return;
+
+        if (e.mods.isPopupMenu())
+        {
+            model.selectedChannel = row;
+            juce::PopupMenu menu;
+            menu.addSectionHeader(model.channels[(size_t) row].name);
+            juce::PopupMenu colours;
+            static const juce::uint32 palette[] = { 0xff00d1b2, 0xff7aa2ff, 0xffffb86b, 0xffc792ea,
+                                                    0xfff07178, 0xff89ddff, 0xffc3e88d, 0xffffcb6b,
+                                                    0xffe6a8d7, 0xff9aa5b1, 0xffd6d0c4, 0xff8bc5a8 };
+            for (int i = 0; i < 12; ++i)
+                colours.addItem(i + 1, "Colour " + juce::String(i + 1));
+            menu.addSubMenu("Track colour", colours);
+            menu.addItem(100, "Open in note editor");
+            juce::Component::SafePointer<TimelinePanel> safe(this);
+            menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(this),
+                [safe, row, palette](int result)
+                {
+                    auto* self = safe.getComponent();
+                    if (self == nullptr) return;
+                    if (result >= 1 && result <= 12)
+                    {
+                        self->model.channels[(size_t) row].colour = juce::Colour(palette[result - 1]);
+                        self->model.changed();
+                    }
+                    else if (result == 100)
+                    {
+                        self->model.selectedChannel = row;
+                        self->model.changed();
+                    }
+                });
+            return;
+        }
 
         model.selectedChannel = row;
 
