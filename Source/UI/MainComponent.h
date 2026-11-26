@@ -90,6 +90,7 @@ private:
 
     OpaloLogo topLogo;
     juce::TextButton loadAudioButton { "Load audio" };
+    juce::TextButton startButton { "Start" };
     juce::TextButton playButton  { "Play" };
     juce::TextButton stopButton  { "Stop" };
     juce::TextButton recordButton { "REC" };
