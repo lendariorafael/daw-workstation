@@ -72,6 +72,16 @@ public:
             g.drawText(juce::String(b + 1), x + 5, 0, 40, rulerHeight, juce::Justification::centredLeft, false);
         }
 
+        // Alternância de fundo por compasso: quatro tempos claros, quatro escuros.
+        for (int b = 0; b < totalBars; ++b)
+        {
+            const int x = nameWidth + juce::roundToInt(b * barW);
+            const int nextX = nameWidth + juce::roundToInt((b + 1) * barW);
+            g.setColour((b % 2 == 0) ? DawLookAndFeel::panelLight.withAlpha(0.13f)
+                                     : DawLookAndFeel::background.withAlpha(0.22f));
+            g.fillRect(x, rulerHeight, juce::jmax(1, nextX - x), getHeight() - rulerHeight);
+        }
+
         // Faixas visíveis (zebra + destaque da seleção e do hover)
         const int channels = (int) model.channels.size();
         const int first = juce::jlimit(0, channels, scrollY / rowHeight);
