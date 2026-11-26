@@ -1,31 +1,54 @@
 #pragma once
 
 #include <juce_audio_utils/juce_audio_utils.h>
+#include <cmath>
+#include "../Settings/OpaloSettings.h"
 
-// Motor de áudio do Milestone 001: saída de áudio padrão e reprodução de um ficheiro.
-// Toda a comunicação com a thread de áudio passa pelo AudioTransportSource,
-// que é seguro para chamadas a partir da thread de interface.
+// Motor de áudio: saída do sistema, reprodução do ficheiro principal e dois decks para mashup.
+// Tudo passa por um MixerAudioSource, por isso há uma só cadeia de áudio.
 class AudioEngine
 {
 public:
+    static constexpr int numDecks = 2;
+
     AudioEngine()
     {
         formatManager.registerBasicFormats(); // WAV, AIFF, FLAC, OGG
 
-        auto error = deviceManager.initialiseWithDefaultDevices(0, 2);
+        auto saved = OpaloSettings::get().getXmlValue("audioDevice");
+        const auto error = deviceManager.initialise(0, 2, saved.get(), true);
         if (error.isNotEmpty())
             juce::Logger::writeToLog("Audio device error: " + error);
 
-        player.setSource(&transport);
+        mixer.addInputSource(&transport, false);
+        for (auto& d : decks)
+            mixer.addInputSource(&d.resampler, false);
+
+        player.setSource(&mixer);
         deviceManager.addAudioCallback(&player);
     }
 
     ~AudioEngine()
     {
-        transport.setSource(nullptr);
         deviceManager.removeAudioCallback(&player);
         player.setSource(nullptr);
+        mixer.removeAllInputs();
+        for (auto& d : decks)
+            d.close();
+        transport.setSource(nullptr);
+
+        auto state = deviceManager.createStateXml();
+        if (state != nullptr)
+        {
+            OpaloSettings::get().setValue("audioDevice", state.get());
+            OpaloSettings::get().save();
+        }
     }
+
+    juce::AudioDeviceManager& devices() { return deviceManager; }
+    juce::AudioFormatManager& getFormatManager() { return formatManager; }
+
+    // ----- Ficheiro principal -----
 
     bool loadFile(const juce::File& file)
     {
@@ -62,15 +85,99 @@ public:
     }
 
     void setGain(float gain)        { transport.setGain(gain); }
-
     void seek(double seconds)       { transport.setPosition(juce::jlimit(0.0, getLength(), seconds)); }
 
-    juce::AudioFormatManager& getFormatManager() { return formatManager; }
+    // ----- Decks de mashup -----
+
+    bool loadDeck(int i, const juce::File& file)
+    {
+        if (! juce::isPositiveAndBelow(i, numDecks))
+            return false;
+
+        std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(file));
+        if (reader == nullptr)
+            return false;
+
+        auto& d = decks[(size_t) i];
+        const double sampleRate = reader->sampleRate;
+
+        d.transport.stop();
+        d.transport.setSource(nullptr);
+        d.reader = std::make_unique<juce::AudioFormatReaderSource>(reader.release(), true);
+        d.transport.setSource(d.reader.get(), 0, nullptr, sampleRate);
+        d.transport.setPosition(0.0);
+        return true;
+    }
+
+    void playDeck(int i)
+    {
+        if (juce::isPositiveAndBelow(i, numDecks) && decks[(size_t) i].reader != nullptr)
+            decks[(size_t) i].transport.start();
+    }
+
+    void stopDeck(int i)
+    {
+        if (juce::isPositiveAndBelow(i, numDecks))
+        {
+            decks[(size_t) i].transport.stop();
+            decks[(size_t) i].transport.setPosition(0.0);
+        }
+    }
+
+    bool deckPlaying(int i) const    { return juce::isPositiveAndBelow(i, numDecks) && decks[(size_t) i].transport.isPlaying(); }
+    double deckPosition(int i) const { return juce::isPositiveAndBelow(i, numDecks) ? decks[(size_t) i].transport.getCurrentPosition() : 0.0; }
+    double deckLength(int i) const   { return juce::isPositiveAndBelow(i, numDecks) ? decks[(size_t) i].transport.getLengthInSeconds() : 0.0; }
+    double deckBpm(int i) const      { return juce::isPositiveAndBelow(i, numDecks) ? decks[(size_t) i].bpm : 0.0; }
+
+    void setDeckBpm(int i, double bpm)
+    {
+        if (juce::isPositiveAndBelow(i, numDecks))
+            decks[(size_t) i].bpm = juce::jmax(0.0, bpm);
+    }
+
+    // Varispeed: a razão ajusta a velocidade (e o tom). 1.0 = velocidade original.
+    void setDeckRatio(int i, double ratio)
+    {
+        if (juce::isPositiveAndBelow(i, numDecks))
+        {
+            auto& d = decks[(size_t) i];
+            d.ratio = juce::jlimit(0.5, 2.0, ratio);
+            d.resampler.setResamplingRatio(d.ratio);
+        }
+    }
+
+    double deckRatio(int i) const { return juce::isPositiveAndBelow(i, numDecks) ? decks[(size_t) i].ratio : 1.0; }
+
+    // Crossfader com potência constante: 0 = só A, 1 = só B.
+    void setCrossfade(float x)
+    {
+        const double angle = juce::jlimit(0.0, 1.0, (double) x) * juce::MathConstants<double>::halfPi;
+        decks[0].transport.setGain((float) std::cos(angle));
+        decks[1].transport.setGain((float) std::sin(angle));
+    }
 
 private:
+    struct Deck
+    {
+        juce::AudioTransportSource transport;
+        juce::ResamplingAudioSource resampler { &transport, false, 2 };
+        std::unique_ptr<juce::AudioFormatReaderSource> reader;
+        double bpm = 0.0;
+        double ratio = 1.0;
+
+        void close()
+        {
+            transport.stop();
+            transport.setSource(nullptr);
+            reader.reset();
+        }
+    };
+
     juce::AudioFormatManager formatManager;
     juce::AudioDeviceManager deviceManager;
     juce::AudioTransportSource transport;
-    juce::AudioSourcePlayer player;
     std::unique_ptr<juce::AudioFormatReaderSource> currentSource;
+    Deck decks[numDecks];
+    juce::MixerAudioSource mixer;
+    juce::AudioSourcePlayer player;
 };

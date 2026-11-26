@@ -1,0 +1,300 @@
+#pragma once
+
+#include <juce_gui_basics/juce_gui_basics.h>
+#include "../../Model/ProjectModel.h"
+#include "../DawLookAndFeel.h"
+#include "../../I18n/Strings.h"
+
+// Playlist (Timeline): faixas por canal, clips de 1 compasso, grelha por compasso e cursor.
+// Clicar numa célula cria ou remove um clip. Passar o rato destaca a célula.
+class TimelinePanel : public juce::Component,
+                      private juce::ChangeListener,
+                      private juce::Timer
+{
+public:
+    explicit TimelinePanel(ProjectModel& m) : model(m)
+    {
+        model.addChangeListener(this);
+        setWantsKeyboardFocus(true);
+        startTimerHz(30);
+    }
+
+    enum class Tool { Select, Cut };
+
+    bool keyPressed(const juce::KeyPress& key) override
+    {
+        const auto c = juce::CharacterFunctions::toLowerCase(key.getTextCharacter());
+        if (c == 'c') { setTool(Tool::Cut);    return true; }
+        if (c == 'd') { setTool(Tool::Select); return true; }
+        return false;
+    }
+
+    void setTool(Tool t)
+    {
+        tool = t;
+        repaint();
+    }
+
+    ~TimelinePanel() override
+    {
+        stopTimer();
+        model.removeChangeListener(this);
+    }
+
+    void paint(juce::Graphics& g) override
+    {
+        g.fillAll(DawLookAndFeel::background);
+        const float barW = barWidth();
+
+        // Cabeçalho (régua) com gradiente suave
+        juce::ColourGradient rulerGrad(DawLookAndFeel::panelLight, 0.0f, 0.0f,
+                                       DawLookAndFeel::panel, 0.0f, (float) rulerHeight, false);
+        g.setGradientFill(rulerGrad);
+        g.fillRect(0, 0, getWidth(), rulerHeight);
+
+        g.setFont(DawLookAndFeel::uiFont(11.0f));
+        for (int b = 0; b < totalBars; ++b)
+        {
+            const int x = nameWidth + juce::roundToInt(b * barW);
+            const bool strong = (b % 4) == 0;
+
+            g.setColour(DawLookAndFeel::muted.withAlpha(strong ? 0.45f : 0.15f));
+            g.drawVerticalLine(x, (float) rulerHeight, (float) getHeight());
+
+            g.setColour(strong ? DawLookAndFeel::text : DawLookAndFeel::muted);
+            g.drawText(juce::String(b + 1), x + 5, 0, 40, rulerHeight, juce::Justification::centredLeft, false);
+        }
+
+        // Faixas visíveis (zebra + destaque da seleção e do hover)
+        const int channels = (int) model.channels.size();
+        const int first = juce::jlimit(0, channels, scrollY / rowHeight);
+        const int last = juce::jlimit(0, channels, (scrollY + getHeight()) / rowHeight + 2);
+
+        for (int i = first; i < last; ++i)
+        {
+            const auto& ch = model.channels[(size_t) i];
+            const int y = rowY(i);
+
+            juce::Colour rowColour = (i % 2 == 0) ? DawLookAndFeel::panel : DawLookAndFeel::background.brighter(0.03f);
+            if (i == model.selectedChannel)
+                rowColour = DawLookAndFeel::panelLight;
+            g.setColour(rowColour);
+            g.fillRect(0, y, getWidth(), rowHeight);
+
+            if (i == hoverRow)
+            {
+                g.setColour(DawLookAndFeel::text.withAlpha(0.04f));
+                g.fillRect(nameWidth, y, getWidth() - nameWidth, rowHeight);
+            }
+
+            // Barra de cor à esquerda e nome do canal
+            g.setColour(ch.colour);
+            g.fillRoundedRectangle(juce::Rectangle<float>(4.0f, (float) (y + 6), 4.0f, (float) (rowHeight - 12)), 2.0f);
+
+            g.setColour(DawLookAndFeel::text);
+            g.setFont(DawLookAndFeel::uiFont(13.0f, true));
+            g.drawText(ch.name, 16, y, nameWidth - 24, rowHeight, juce::Justification::centredLeft, true);
+        }
+
+        // Clips com contorno e nome
+        for (const auto& c : model.clips)
+        {
+            if (c.channel < first || c.channel >= last)
+                continue;
+
+            const auto& ch = model.channels[(size_t) c.channel];
+            auto r = juce::Rectangle<float>(nameWidth + c.startBar * barW + 3.0f,
+                                            (float) (rowY(c.channel) + 6),
+                                            c.lengthBars * barW - 6.0f,
+                                            (float) (rowHeight - 12));
+
+            g.setColour(ch.colour.withAlpha(0.22f));
+            g.fillRoundedRectangle(r, 6.0f);
+            g.setColour(ch.colour.withAlpha(0.9f));
+            g.drawRoundedRectangle(r, 6.0f, 1.0f);
+
+            g.setColour(ch.colour);
+            g.setFont(DawLookAndFeel::uiFont(10.0f, true));
+            g.drawText(ch.name, r.toNearestInt().reduced(8, 0), juce::Justification::centredLeft, true);
+        }
+
+        // Botão da ferramenta (Selecionar / Cortar)
+        const auto tb = toolButtonBounds();
+        const bool cutting = tool == Tool::Cut;
+        g.setColour(cutting ? DawLookAndFeel::accent : DawLookAndFeel::panelLight);
+        g.fillRoundedRectangle(tb.toFloat(), 6.0f);
+        drawBladeIcon(g, juce::Rectangle<float>((float) tb.getX() + 6.0f, (float) tb.getY() + 4.0f, 18.0f, 18.0f),
+                      cutting ? DawLookAndFeel::background : DawLookAndFeel::text);
+        g.setColour(cutting ? DawLookAndFeel::background : DawLookAndFeel::text);
+        g.setFont(DawLookAndFeel::uiFont(11.0f, true));
+        g.drawText(cutting ? I18n::t("tool.cut") : I18n::t("tool.select"),
+                   tb.withTrimmedLeft(28), juce::Justification::centredLeft, false);
+
+        // Cursor de reprodução
+        const float px = nameWidth + (float) (model.playheadSeconds / model.secondsPerBar()) * barW;
+        if (px >= nameWidth && px <= (float) getWidth())
+        {
+            g.setColour(DawLookAndFeel::accent);
+            g.drawVerticalLine(juce::roundToInt(px), 0.0f, (float) getHeight());
+        }
+    }
+
+    void mouseMove(const juce::MouseEvent& e) override
+    {
+        const auto p = e.getPosition();
+        const int row = p.y < rulerHeight ? -1 : (p.y - rulerHeight + scrollY) / rowHeight;
+        if (row != hoverRow)
+        {
+            hoverRow = row;
+            repaint();
+        }
+    }
+
+    void mouseExit(const juce::MouseEvent&) override
+    {
+        hoverRow = -1;
+        repaint();
+    }
+
+    void mouseWheelMove(const juce::MouseEvent&, const juce::MouseWheelDetails& wheel) override
+    {
+        scrollBy(-(int) (wheel.deltaY * rowHeight * 3.0f));
+    }
+
+    void mouseDown(const juce::MouseEvent& e) override
+    {
+        grabKeyboardFocus();
+        const auto p = e.getPosition();
+
+        // Botão da ferramenta no canto superior direito da régua.
+        if (toolButtonBounds().contains(p))
+        {
+            setTool(tool == Tool::Cut ? Tool::Select : Tool::Cut);
+            return;
+        }
+
+        if (p.y < rulerHeight)
+            return;
+
+        const int row = (p.y - rulerHeight + scrollY) / rowHeight;
+        if (row < 0 || row >= (int) model.channels.size())
+            return;
+
+        model.selectedChannel = row;
+
+        if (p.x < nameWidth)
+        {
+            model.changed();
+            return;
+        }
+
+        if (tool == Tool::Cut)
+        {
+            cutAt(row, p.x);
+            return;
+        }
+
+        const int bar = juce::jlimit(0, totalBars - 1, (int) ((p.x - nameWidth) / barWidth()));
+
+        for (size_t k = 0; k < model.clips.size(); ++k)
+        {
+            if (model.clips[k].channel == row && model.clips[k].startBar == bar)
+            {
+                model.clips.erase(model.clips.begin() + (std::ptrdiff_t) k);
+                model.changed();
+                return;
+            }
+        }
+
+        model.clips.push_back(Clip { row, bar, 1 });
+        model.changed();
+    }
+
+private:
+    // Corta o clip sob o cursor no compasso mais próximo. Só corta dentro de um clip.
+    void cutAt(int row, int x)
+    {
+        const float exact = (x - nameWidth) / barWidth();
+        const int boundary = juce::roundToInt(exact);
+
+        for (size_t k = 0; k < model.clips.size(); ++k)
+        {
+            auto& c = model.clips[k];
+            if (c.channel != row || boundary <= c.startBar || boundary >= c.startBar + c.lengthBars)
+                continue;
+
+            Clip right = c;
+            right.startBar = boundary;
+            right.lengthBars = c.startBar + c.lengthBars - boundary;
+
+            c.lengthBars = boundary - c.startBar;
+            model.clips.push_back(right);
+            model.changed();
+            return;
+        }
+    }
+
+    juce::Rectangle<int> toolButtonBounds() const
+    {
+        return { getWidth() - 132, 4, 120, rulerHeight - 8 };
+    }
+
+    // Ícone de lâmina, desenhado de propósito para ser diferente das tesouras de outros programas:
+    // uma lâmina diagonal com um cabo circular e uma linha de corte pontilhada.
+    static void drawBladeIcon(juce::Graphics& g, juce::Rectangle<float> r, juce::Colour colour)
+    {
+        g.setColour(colour);
+
+        juce::Path blade;
+        blade.startNewSubPath(r.getX() + r.getWidth() * 0.18f, r.getBottom() - r.getHeight() * 0.18f);
+        blade.lineTo(r.getRight() - r.getWidth() * 0.12f, r.getY() + r.getHeight() * 0.22f);
+        blade.lineTo(r.getRight() - r.getWidth() * 0.02f, r.getY() + r.getHeight() * 0.36f);
+        blade.lineTo(r.getX() + r.getWidth() * 0.30f, r.getBottom() - r.getHeight() * 0.04f);
+        blade.closeSubPath();
+        g.fillPath(blade);
+
+        g.drawEllipse(r.getX(), r.getBottom() - r.getHeight() * 0.42f, r.getWidth() * 0.34f, r.getHeight() * 0.34f, 1.6f);
+
+        g.setColour(colour.withAlpha(0.5f));
+        for (int d = 0; d < 3; ++d)
+            g.fillEllipse(r.getX() + r.getWidth() * (0.46f + 0.12f * d), r.getY() + r.getHeight() * 0.62f, 2.0f, 2.0f);
+    }
+
+    void changeListenerCallback(juce::ChangeBroadcaster*) override
+    {
+        repaint();
+    }
+
+    void timerCallback() override
+    {
+        repaint();
+    }
+
+    void scrollBy(int delta)
+    {
+        const int contentHeight = (int) model.channels.size() * rowHeight;
+        const int maxScroll = juce::jmax(0, contentHeight - (getHeight() - rulerHeight));
+        scrollY = juce::jlimit(0, maxScroll, scrollY + delta);
+        repaint();
+    }
+
+    int rowY(int i) const
+    {
+        return rulerHeight + i * rowHeight - scrollY;
+    }
+
+    float barWidth() const
+    {
+        return (float) (getWidth() - nameWidth) / (float) totalBars;
+    }
+
+    static constexpr int totalBars = 32;
+    static constexpr int nameWidth = 160;
+    static constexpr int rulerHeight = 30;
+    static constexpr int rowHeight = 46;
+
+    ProjectModel& model;
+    int scrollY = 0;
+    int hoverRow = -1;
+    Tool tool = Tool::Select;
+};
