@@ -5,8 +5,7 @@ project(DAWWorkstation VERSION 0.1.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Versão fixa do JUCE. Confirmar que a tag existe em
-# https://github.com/juce-framework/JUCE/tags antes de alterar.
+# Versão fixa do JUCE. Confirmar a tag em https://github.com/juce-framework/JUCE/tags
 set(JUCE_VERSION "8.0.4" CACHE STRING "Versão (tag) do JUCE usada pelo projeto")
 
 include(FetchContent)
@@ -18,7 +17,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(JUCE)
 
-# Nome provisório. Quando o nome comercial for escolhido, altera apenas PRODUCT_NAME.
+# Nome provisório. Para mudar o nome comercial, altera apenas PRODUCT_NAME.
 juce_add_gui_app(DAWWorkstation
     PRODUCT_NAME "DAW Workstation"
     COMPANY_NAME "lendariorafael"
@@ -28,14 +27,24 @@ juce_generate_juce_header(DAWWorkstation)
 
 target_sources(DAWWorkstation PRIVATE
     Source/Main.cpp
+    Source/AudioEngine/AudioEngine.h
+    Source/UI/DawLookAndFeel.h
+    Source/UI/MainComponent.h
+    Source/UI/MainComponent.cpp
 )
 
 target_compile_definitions(DAWWorkstation PRIVATE
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_STRICT_REFCOUNTEDPOINTER=1
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+    JUCE_REPORT_APP_USAGE=0
 )
 
 target_link_libraries(DAWWorkstation PRIVATE
     juce::juce_gui_basics
+    juce::juce_audio_utils
+    juce::juce_audio_devices
+    juce::juce_audio_formats
+    juce::juce_audio_basics
 )

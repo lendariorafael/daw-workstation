@@ -1,19 +1,20 @@
-// DAW Workstation — ponto de entrada.
-// Fase atual: apenas abre uma janela principal vazia.
+// DAW Workstation: ponto de entrada.
 
 #include <juce_gui_basics/juce_gui_basics.h>
+#include "UI/DawLookAndFeel.h"
+#include "UI/MainComponent.h"
 
 class MainWindow : public juce::DocumentWindow
 {
 public:
     explicit MainWindow(const juce::String& name)
-        : DocumentWindow(name,
-                         juce::Colours::darkslategrey,
-                         DocumentWindow::allButtons)
+        : DocumentWindow(name, DawLookAndFeel::background, DocumentWindow::allButtons)
     {
         setUsingNativeTitleBar(true);
+        setContentOwned(new MainComponent(), true);
+        setResizeLimits(960, 540, 4096, 2160);
         setResizable(true, true);
-        centreWithSize(1280, 720);
+        centreWithSize(getWidth(), getHeight());
         setVisible(true);
     }
 
@@ -29,11 +30,9 @@ private:
 class DAWApplication : public juce::JUCEApplication
 {
 public:
-    DAWApplication() = default;
-
-    const juce::String getApplicationName() override       { return "DAW Workstation"; }
-    const juce::String getApplicationVersion() override    { return "0.1.0"; }
-    bool moreThanOneInstanceAllowed() override             { return true; }
+    const juce::String getApplicationName() override    { return "DAW Workstation"; }
+    const juce::String getApplicationVersion() override { return "0.1.0"; }
+    bool moreThanOneInstanceAllowed() override          { return true; }
 
     void initialise(const juce::String&) override
     {
