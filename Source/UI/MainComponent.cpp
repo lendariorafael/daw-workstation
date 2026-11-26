@@ -330,7 +330,7 @@ void MainComponent::showMenu(const juce::String& menuName)
 void MainComponent::applyLayoutPreset(int preset)
 {
     preset = juce::jlimit(0, 3, preset);
-    const auto area = getLocalBounds().withTrimmedTop(132).withTrimmedBottom(40).reduced(10);
+    const auto area = getLocalBounds().withTrimmedTop(80).reduced(8);
     const int gap = 8;
     const int browserW = juce::jlimit(190, 280, area.getWidth() / 6);
     const int workX = area.getX() + browserW + gap;
@@ -351,24 +351,20 @@ void MainComponent::applyLayoutPreset(int preset)
                          mashupWindow.get(), settingsWindow.get(), automationWindow.get() })
         panel->setVisible(false);
 
-    if (preset == 0) // Opalo Studio — arrangement above, mixer below
+    if (preset == 0) // Layout de referência: Playlist superior, Mixer inferior e Browser flutuante
     {
-        // Layout principal inspirado na referência: Playlist ampla e Mixer fixo na base.
-        // Browser e Patterns ficam disponíveis por ícone, sem ocupar espaço no arranque.
-        const int playlistHeight = juce::jlimit(280, juce::jmax(280, workH - 190), workH * 57 / 100);
+        const int playlistHeight = juce::jlimit(300, juce::jmax(300, workH - 220), workH * 58 / 100);
         const int mixerY = area.getY() + playlistHeight + gap;
         const int mixerHeight = juce::jmax(190, area.getBottom() - mixerY);
-        const int dockBrowserW = juce::jlimit(190, 250, area.getWidth() / 5);
-        const int dockGap = 8;
-        const int editorX = area.getX() + dockBrowserW + dockGap;
-        const int editorW = juce::jmax(320, area.getRight() - editorX);
-        browserWindow->setBounds(area.getX(), area.getY(), dockBrowserW, workH);
-        timelineWindow->setBounds(editorX, area.getY(), editorW, playlistHeight);
-        consoleWindow->setBounds(editorX, mixerY, editorW, mixerHeight);
-        beatWindow->setBounds(editorX + 24, area.getY() + 28,
-                              juce::jmin(editorW - 48, 980), juce::jmin(workH - 56, 260));
-        noteWindow->setBounds(editorX + 18, area.getY() + 18,
-                              juce::jmin(editorW - 36, 1100), juce::jmin(workH - 36, 560));
+        timelineWindow->setBounds(area.getX(), area.getY(), area.getWidth(), playlistHeight);
+        consoleWindow->setBounds(area.getX(), mixerY, area.getWidth(), mixerHeight);
+        const int browserW = juce::jlimit(210, 270, area.getWidth() / 5);
+        const int browserH = juce::jlimit(360, juce::jmax(360, workH - 60), workH * 76 / 100);
+        browserWindow->setBounds(area.getRight() - browserW - 14, area.getY() + 18, browserW, browserH);
+        beatWindow->setBounds(area.getX() + 120, area.getY() + 70,
+                              juce::jmin(area.getWidth() - 240, 980), juce::jmin(workH - 120, 300));
+        noteWindow->setBounds(area.getX() + 100, area.getY() + 50,
+                              juce::jmin(area.getWidth() - 200, 1100), juce::jmin(workH - 100, 560));
         browserWindow->setVisible(true);
         timelineWindow->setVisible(true);
         beatWindow->setVisible(false);
@@ -809,32 +805,32 @@ void MainComponent::updateControls()
 void MainComponent::paint(juce::Graphics& g)
 {
     g.fillAll(OpaloDesign::background);
-    auto menuBar = getLocalBounds().removeFromTop(34);
+    auto menuBar = getLocalBounds().removeFromTop(22);
     g.setColour(OpaloDesign::surface0);
     g.fillRect(menuBar);
-    auto transport = getLocalBounds().withTrimmedTop(34).removeFromTop(52);
+    auto transport = getLocalBounds().withTrimmedTop(22).removeFromTop(30);
     g.setColour(OpaloDesign::surface1);
     g.fillRect(transport);
-    auto shortcuts = getLocalBounds().withTrimmedTop(86).removeFromTop(46);
+    auto shortcuts = getLocalBounds().withTrimmedTop(52).removeFromTop(28);
     g.setColour(OpaloDesign::surface0);
     g.fillRect(shortcuts);
-    auto waveformFooter = getLocalBounds().removeFromBottom(40);
+    auto waveformFooter = juce::Rectangle<int>();
     g.setColour(OpaloDesign::surface1);
     g.fillRect(waveformFooter);
     g.setColour(OpaloDesign::accent.withAlpha(0.48f));
-    g.fillRect(0, 132, getWidth(), 1);
+    g.fillRect(0, 80, getWidth(), 1);
 }
 
 void MainComponent::resized()
 {
-    auto menu = getLocalBounds().removeFromTop(34).reduced(10, 2);
+    auto menu = getLocalBounds().removeFromTop(22).reduced(10, 1);
     fileMenuButton.setBounds(menu.removeFromLeft(58));
     editMenuButton.setBounds(menu.removeFromLeft(58));
     viewMenuButton.setBounds(menu.removeFromLeft(58));
     toolsMenuButton.setBounds(menu.removeFromLeft(62));
     helpMenuButton.setBounds(menu.removeFromLeft(58));
 
-    auto transport = getLocalBounds().withTrimmedTop(34).removeFromTop(52).reduced(10, 7);
+    auto transport = getLocalBounds().withTrimmedTop(22).removeFromTop(30).reduced(10, 2);
     newButton.setBounds(transport.removeFromLeft(58));
     transport.removeFromLeft(5);
     openButton.setBounds(transport.removeFromLeft(58));
@@ -861,7 +857,7 @@ void MainComponent::resized()
     transport.removeFromRight(12);
     fileLabel.setBounds(transport);
 
-    auto shortcuts = getLocalBounds().withTrimmedTop(86).removeFromTop(46).reduced(10, 6);
+    auto shortcuts = getLocalBounds().withTrimmedTop(52).removeFromTop(28).reduced(10, 2);
     browserButton.setBounds(shortcuts.removeFromLeft(38));
     timelineButton.setBounds(shortcuts.removeFromLeft(38));
     beatButton.setBounds(shortcuts.removeFromLeft(38));
@@ -880,13 +876,13 @@ void MainComponent::resized()
         button->setColour(juce::TextButton::textColourOnId, OpaloDesign::background);
     }
 
-    waveform.setBounds(getLocalBounds().withTrimmedTop(getHeight() - 40).reduced(10, 4));
+    waveform.setBounds(0, 0, 0, 0);
 
     if (! layoutInitialized)
         applyLayoutPreset(0);
     else
     {
-        const auto workspace = getLocalBounds().withTrimmedTop(132).withTrimmedBottom(40).reduced(4);
+        const auto workspace = getLocalBounds().withTrimmedTop(80).reduced(4);
         for (auto* panel : { browserWindow.get(), timelineWindow.get(), consoleWindow.get(),
                              beatWindow.get(), noteWindow.get(), vaultWindow.get(),
                              mashupWindow.get(), settingsWindow.get() })
