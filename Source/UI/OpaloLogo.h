@@ -68,7 +68,9 @@ public:
             for (int i = 0; i < word.length(); ++i)
             {
                 auto letter = word.substring(i, i + 1);
-                const float w = font.getStringWidthFloat(letter);
+                // getStringWidthFloat() was removed from the JUCE Font API.
+                // getStringWidth() is available in the JUCE version used by this project.
+                const float w = static_cast<float>(font.getStringWidth(letter));
                 g.drawText(letter,
                            juce::Rectangle<float>(x, area.getY(), w + 2.0f, area.getHeight()),
                            juce::Justification::centredLeft,
