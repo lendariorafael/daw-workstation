@@ -47,6 +47,16 @@ public:
             }
         }
 
+        // Bandas alternadas: quatro tempos claros e quatro tempos escuros.
+        for (int group = 0; group < 4; ++group)
+        {
+            const int x = keyWidth + juce::roundToInt(group * 4 * colW);
+            const int nextX = keyWidth + juce::roundToInt((group + 1) * 4 * colW);
+            g.setColour((group % 2 == 0) ? DawLookAndFeel::panelLight.withAlpha(0.20f)
+                                         : DawLookAndFeel::background.withAlpha(0.34f));
+            g.fillRect(x, headerHeight, juce::jmax(1, nextX - x), getHeight() - headerHeight);
+        }
+
         // Grelha de passos
         for (int s = 0; s <= ProjectModel::numSteps; ++s)
         {
