@@ -359,7 +359,7 @@ void MainComponent::applyLayoutPreset(int preset)
         timelineWindow->setBounds(area.getX(), area.getY(), area.getWidth(), playlistHeight);
         consoleWindow->setBounds(area.getX(), mixerY, area.getWidth(), mixerHeight);
         const int browserW = juce::jlimit(210, 270, area.getWidth() / 5);
-        const int browserH = juce::jlimit(360, juce::jmax(360, workH - 60), workH * 76 / 100);
+        const int browserH = juce::jmax(220, playlistHeight - 36);
         browserWindow->setBounds(area.getRight() - browserW - 14, area.getY() + 18, browserW, browserH);
         beatWindow->setBounds(area.getX() + 120, area.getY() + 70,
                               juce::jmin(area.getWidth() - 240, 980), juce::jmin(workH - 120, 300));
@@ -400,10 +400,11 @@ void MainComponent::applyLayoutPreset(int preset)
     }
 
     layoutInitialized = true;
-    for (auto* panel : { browserWindow.get(), timelineWindow.get(), beatWindow.get(),
-                         consoleWindow.get(), noteWindow.get(), vaultWindow.get(),
-                         mashupWindow.get(), settingsWindow.get(), automationWindow.get() })
+    for (auto* panel : { timelineWindow.get(), consoleWindow.get(), beatWindow.get(),
+                         noteWindow.get(), vaultWindow.get(), mashupWindow.get(),
+                         settingsWindow.get(), automationWindow.get() })
         if (panel->isVisible()) panel->toFront(false);
+    if (browserWindow->isVisible()) browserWindow->toFront(false);
 
     repaint();
 }
