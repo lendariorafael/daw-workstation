@@ -176,16 +176,18 @@ void MainComponent::refreshTexts()
     saveButton.setButtonText(I18n::t("file.save"));
     saveAsButton.setButtonText(I18n::t("file.saveAs"));
     loadAudioButton.setButtonText(I18n::t("audio.load"));
-    playButton.setButtonText(I18n::t("transport.play"));
-    stopButton.setButtonText(I18n::t("transport.stop"));
-    browserButton.setButtonText(I18n::t("view.browser"));
-    timelineButton.setButtonText(I18n::t("view.playlist"));
-    consoleButton.setButtonText(I18n::t("view.mixer"));
-    beatButton.setButtonText(I18n::t("view.beat"));
-    noteButton.setButtonText(I18n::t("view.notes"));
-    vaultButton.setButtonText(I18n::t("view.vault"));
-    mashupButton.setButtonText(I18n::t("view.mashup"));
-    settingsButton.setButtonText(I18n::t("view.settings"));
+    playButton.setButtonText("▶");
+    stopButton.setButtonText("■");
+    recordButton.setButtonText("● REC");
+
+    browserButton.setButtonText("▤  Browser");
+    timelineButton.setButtonText("▦  Playlist");
+    consoleButton.setButtonText("▥  Mixer");
+    beatButton.setButtonText("☷  Channel Rack");
+    noteButton.setButtonText("♫  Piano Roll");
+    vaultButton.setButtonText("◈  Plugins");
+    mashupButton.setButtonText("◉  Mashup");
+    settingsButton.setButtonText("⚙  Settings");
 }
 
 void MainComponent::bindPanel(juce::TextButton& button, PanelWindow& window)
@@ -202,6 +204,177 @@ void MainComponent::bindPanel(juce::TextButton& button, PanelWindow& window)
     {
         button.setToggleState(visible, juce::dontSendNotification);
     };
+}
+
+void MainComponent::showMenu(const juce::String& menuName)
+{
+    juce::PopupMenu menu;
+
+    if (menuName == "File")
+    {
+        menu.addItem(1, "New project");
+        menu.addItem(2, "Open project");
+        menu.addItem(3, "Save");
+        menu.addItem(4, "Save as...");
+        menu.addSeparator();
+        menu.addItem(5, "Import audio...");
+        menu.addItem(6, "Quit");
+    }
+    else if (menuName == "Edit")
+    {
+        menu.addItem(1, "Undo");
+        menu.addItem(2, "Redo");
+        menu.addSeparator();
+        menu.addItem(3, "Cut tool  (C)");
+        menu.addItem(4, "Select tool  (D)");
+    }
+    else if (menuName == "View")
+    {
+        menu.addItem(1, "Browser", true, browserWindow->isVisible());
+        menu.addItem(2, "Playlist", true, timelineWindow->isVisible());
+        menu.addItem(3, "Channel Rack", true, beatWindow->isVisible());
+        menu.addItem(4, "Mixer", true, consoleWindow->isVisible());
+        menu.addItem(5, "Piano Roll", true, noteWindow->isVisible());
+        menu.addItem(6, "Plugin Vault", true, vaultWindow->isVisible());
+        menu.addItem(7, "Mashup decks", true, mashupWindow->isVisible());
+        menu.addSeparator();
+        menu.addItem(8, "Settings");
+    }
+    else if (menuName == "Tools")
+    {
+        menu.addItem(1, "DJ Mashup");
+        menu.addItem(2, "Plugin Vault");
+        menu.addItem(3, "Piano Roll");
+        menu.addItem(4, "Load audio");
+    }
+    else
+    {
+        menu.addItem(1, "Keyboard shortcuts");
+        menu.addItem(2, "About Opalo");
+    }
+
+    juce::Component::SafePointer<MainComponent> safe(this);
+    auto* target = menuName == "File" ? static_cast<juce::Component*>(&fileMenuButton)
+                : menuName == "Edit" ? static_cast<juce::Component*>(&editMenuButton)
+                : menuName == "View" ? static_cast<juce::Component*>(&viewMenuButton)
+                : menuName == "Tools" ? static_cast<juce::Component*>(&toolsMenuButton)
+                                      : static_cast<juce::Component*>(&helpMenuButton);
+
+    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(target),
+        [safe, menuName](int result)
+        {
+            auto* self = safe.getComponent();
+            if (self == nullptr || result == 0) return;
+
+            if (menuName == "File")
+            {
+                if (result == 1) self->newProject();
+                else if (result == 2) self->openProject();
+                else if (result == 3) self->saveProject();
+                else if (result == 4) self->saveProjectAs();
+                else if (result == 5) self->loadAudio();
+                else if (result == 6) juce::JUCEApplication::getInstance()->systemRequestedQuit();
+            }
+            else if (menuName == "Edit")
+            {
+                if (result == 1) self->undo();
+                else if (result == 2) self->redo();
+                else if (result == 3) self->timelineWindow->setVisible(true);
+                else if (result == 4) self->timelineWindow->setVisible(true);
+            }
+            else if (menuName == "View")
+            {
+                PanelWindow* panels[] = { self->browserWindow.get(), self->timelineWindow.get(),
+                    self->beatWindow.get(), self->consoleWindow.get(), self->noteWindow.get(),
+                    self->vaultWindow.get(), self->mashupWindow.get(), self->settingsWindow.get() };
+                if (result >= 1 && result <= 8)
+                {
+                    auto* panel = panels[result - 1];
+                    panel->setVisible(!panel->isVisible());
+                    if (panel->isVisible()) panel->toFront(false);
+                }
+            }
+            else if (menuName == "Tools")
+            {
+                if (result == 1) self->mashupWindow->setVisible(true);
+                else if (result == 2) self->vaultWindow->setVisible(true);
+                else if (result == 3) self->noteWindow->setVisible(true);
+                else if (result == 4) self->loadAudio();
+            }
+            else
+            {
+                if (result == 1)
+                    juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon, "Opalo shortcuts",
+                        "Ctrl+N  New project\nCtrl+O  Open project\nCtrl+S  Save\nCtrl+Z  Undo\nCtrl+Y  Redo\nC  Slice tool\nD  Select tool");
+                else
+                    juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon, "About Opalo",
+                        "Opalo Digital Audio Workstation\nVersion 0.1.0\nA creative audio workspace.");
+            }
+        });
+}
+
+void MainComponent::applyLayoutPreset(int preset)
+{
+    const auto area = getLocalBounds().withTrimmedTop(132).reduced(10);
+    const int gap = 8;
+    const int browserW = juce::jlimit(190, 280, area.getWidth() / 6);
+    const int workX = area.getX() + browserW + gap;
+    const int workW = juce::jmax(320, area.getRight() - workX);
+    const int workH = area.getHeight();
+
+    for (auto* panel : { browserWindow.get(), timelineWindow.get(), consoleWindow.get(),
+                         beatWindow.get(), noteWindow.get(), vaultWindow.get(),
+                         mashupWindow.get(), settingsWindow.get() })
+        panel->setVisible(false);
+
+    if (preset == 0) // Studio Default
+    {
+        browserWindow->setBounds(area.getX(), area.getY(), browserW, workH);
+        timelineWindow->setBounds(workX, area.getY(), workW, juce::jmax(190, workH * 42 / 100));
+        beatWindow->setBounds(workX, area.getY() + workH * 42 / 100 + gap, workW,
+                              juce::jmax(150, workH * 23 / 100));
+        consoleWindow->setBounds(workX, area.getY() + workH * 65 / 100 + gap * 2, workW,
+                                  juce::jmax(170, workH * 35 / 100 - gap * 2));
+        browserWindow->setVisible(true);
+        timelineWindow->setVisible(true);
+        beatWindow->setVisible(true);
+        consoleWindow->setVisible(true);
+    }
+    else if (preset == 1) // Arrangement Focus
+    {
+        browserWindow->setBounds(area.getX(), area.getY(), browserW, workH);
+        timelineWindow->setBounds(workX, area.getY(), workW, workH * 58 / 100);
+        noteWindow->setBounds(workX, area.getY() + workH * 58 / 100 + gap, workW, workH * 42 / 100 - gap);
+        browserWindow->setVisible(true);
+        timelineWindow->setVisible(true);
+        noteWindow->setVisible(true);
+    }
+    else if (preset == 2) // Mix Focus
+    {
+        timelineWindow->setBounds(area.getX(), area.getY(), area.getWidth(), workH * 34 / 100);
+        consoleWindow->setBounds(area.getX(), area.getY() + workH * 34 / 100 + gap,
+                                 area.getWidth(), workH * 66 / 100 - gap);
+        timelineWindow->setVisible(true);
+        consoleWindow->setVisible(true);
+    }
+    else // DJ Mashup
+    {
+        browserWindow->setBounds(area.getX(), area.getY(), browserW, workH);
+        mashupWindow->setBounds(workX, area.getY(), workW, workH * 72 / 100);
+        consoleWindow->setBounds(workX, area.getY() + workH * 72 / 100 + gap,
+                                 workW, workH * 28 / 100 - gap);
+        browserWindow->setVisible(true);
+        mashupWindow->setVisible(true);
+        consoleWindow->setVisible(true);
+    }
+
+    layoutInitialized = true;
+    for (auto* panel : { browserWindow.get(), timelineWindow.get(), beatWindow.get(),
+                         consoleWindow.get(), noteWindow.get(), vaultWindow.get(),
+                         mashupWindow.get(), settingsWindow.get() })
+        if (panel->isVisible()) panel->toFront(false);
+
+    repaint();
 }
 
 // ----- Pastas e ficheiros de apoio -----------------------------------------------
