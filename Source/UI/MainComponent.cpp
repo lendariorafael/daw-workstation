@@ -4,7 +4,7 @@ namespace
 {
     constexpr int maxRecent = 8;
     constexpr int historyDelayTicks = 6;     // ~200 ms de pausa antes de registar uma alteração
-    constexpr int autosaveIntervalTicks = 30 * 60;
+    constexpr int autosaveIntervalTicks = 30 * 60 * 5;
 }
 
 MainComponent::MainComponent()
@@ -776,7 +776,7 @@ void MainComponent::timerCallback()
     if (changePending && ++changeTicks >= historyDelayTicks)
         flushHistory();
 
-    // Cópia de recuperação a cada minuto, se houver alterações.
+    // Cópia de recuperação a cada cinco minutos, se houver alterações.
     if (++autosaveTicks >= autosaveIntervalTicks)
     {
         autosaveTicks = 0;
