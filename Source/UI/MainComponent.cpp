@@ -341,7 +341,8 @@ void MainComponent::applyLayoutPreset(int preset)
     noteWindow->setBounds(workX + 36, area.getY() + 34, juce::jmin(workW - 72, 980), juce::jmin(workH - 68, 560));
     vaultWindow->setBounds(workX + 70, area.getY() + 50, juce::jmin(workW - 140, 620), juce::jmin(workH - 100, 500));
     mashupWindow->setBounds(workX + 24, area.getY() + 24, workW - 48, juce::jmax(300, workH - 48));
-    automationWindow->setBounds(area.getX() + 80, area.getY() + 70, juce::jmin(760, area.getWidth() - 160), 360);\n    settingsWindow->setBounds(area.getX() + (area.getWidth() - 620) / 2,
+    automationWindow->setBounds(area.getX() + 80, area.getY() + 70, juce::jmin(760, area.getWidth() - 160), 360);
+    settingsWindow->setBounds(area.getX() + (area.getWidth() - 620) / 2,
                               area.getY() + (area.getHeight() - 430) / 2,
                               juce::jmin(620, area.getWidth()), juce::jmin(430, area.getHeight()));
 
