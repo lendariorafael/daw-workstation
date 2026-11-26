@@ -146,9 +146,9 @@ private:
     }
 
     static constexpr int headerHeight = 32;
-    static constexpr int rowHeight = 44;
+    static constexpr int rowHeight = 38;
     static constexpr int nameWidth = 240;
-    static constexpr int stepGap = 6;
+    static constexpr int stepGap = 4;
 
     juce::Rectangle<int> rowBounds(int i) const
     {
@@ -172,9 +172,9 @@ private:
         const auto r = rowBounds(i);
         const int gridX = nameWidth + 12;
         const float gridW = (float) (getWidth() - gridX - 12);
-        const float cellW = (gridW - (ProjectModel::numSteps - 1) * stepGap) / (float) ProjectModel::numSteps;
+        const float cellW = juce::jmin(26.0f, (gridW - (ProjectModel::numSteps - 1) * stepGap) / (float) ProjectModel::numSteps);
         const int x = gridX + juce::roundToInt(s * (cellW + stepGap));
-        return { x, r.getY() + 8, juce::roundToInt(cellW), rowHeight - 16 };
+        return { x, r.getY() + 10, juce::roundToInt(cellW), rowHeight - 20 };
     }
 
     ProjectModel& model;
