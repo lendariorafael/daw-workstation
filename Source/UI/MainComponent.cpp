@@ -18,6 +18,7 @@ MainComponent::MainComponent()
     playButton.onClick = [this] { engine.play(); };
     stopButton.onClick = [this] { engine.stop(); };
     recordButton.setTooltip("Audio recording is not available in this build yet.");
+    recordButton.setEnabled(false);
     recordButton.onClick = [this]
     {
         fileLabel.setText("Recording input will be added with the audio capture engine.",
@@ -338,6 +339,14 @@ void MainComponent::applyLayoutPreset(int preset)
     const int workX = area.getX() + browserW + gap;
     const int workW = juce::jmax(320, area.getRight() - workX);
     const int workH = area.getHeight();
+
+    // Bounds de abertura para painéis opcionais, sem os colocar por cima da barra superior.
+    noteWindow->setBounds(workX + 36, area.getY() + 34, juce::jmin(workW - 72, 980), juce::jmin(workH - 68, 560));
+    vaultWindow->setBounds(workX + 70, area.getY() + 50, juce::jmin(workW - 140, 620), juce::jmin(workH - 100, 500));
+    mashupWindow->setBounds(workX + 24, area.getY() + 24, workW - 48, juce::jmax(300, workH - 48));
+    settingsWindow->setBounds(area.getX() + (area.getWidth() - 620) / 2,
+                              area.getY() + (area.getHeight() - 430) / 2,
+                              juce::jmin(620, area.getWidth()), juce::jmin(430, area.getHeight()));
 
     for (auto* panel : { browserWindow.get(), timelineWindow.get(), consoleWindow.get(),
                          beatWindow.get(), noteWindow.get(), vaultWindow.get(),
