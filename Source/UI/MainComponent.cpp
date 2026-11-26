@@ -197,6 +197,7 @@ void MainComponent::refreshTexts()
 void MainComponent::bindPanel(juce::TextButton& button, PanelWindow& window)
 {
     button.setClickingTogglesState(true);
+    button.setToggleState(window.isVisible(), juce::dontSendNotification);
     button.onClick = [&button, &window]
     {
         window.setVisible(button.getToggleState());
