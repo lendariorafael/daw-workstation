@@ -17,7 +17,7 @@ MainComponent::MainComponent()
     startButton.onClick = [this] { engine.seek(0.0); engine.play(); };
     playButton.onClick = [this] { engine.play(); };
     stopButton.onClick = [this] { engine.stop(); };
-    recordButton.setTooltip("Audio recording is not available in this build yet.");
+    recordButton.setTooltip(I18n::t("status.recordUnavailable"));
     recordButton.setEnabled(false);
     recordButton.onClick = [this]
     {
@@ -65,7 +65,6 @@ MainComponent::MainComponent()
     waveform.onSeek = [this](double seconds) { engine.seek(seconds); };
 
     for (auto* component : {
-             static_cast<juce::Component*>(&topLogo),
              static_cast<juce::Component*>(&fileMenuButton),
              static_cast<juce::Component*>(&editMenuButton),
              static_cast<juce::Component*>(&viewMenuButton),
@@ -149,17 +148,6 @@ MainComponent::MainComponent()
 
     applyLayoutPreset((int) OpaloSettings::get().getIntValue("layoutPreset", 0));
 
-    splash = std::make_unique<SplashScreen>();
-    addAndMakeVisible(*splash);
-    splash->setBounds(getLocalBounds());
-    splash->onFinished = [safe = juce::Component::SafePointer<MainComponent>(this)]
-    {
-        juce::MessageManager::callAsync([safe]
-        {
-            if (auto* self = safe.getComponent())
-                self->splash.reset();
-        });
-    };
 
     updateTitle();
     updateControls();
@@ -361,14 +349,21 @@ void MainComponent::applyLayoutPreset(int preset)
         const int playlistHeight = juce::jlimit(280, juce::jmax(280, workH - 190), workH * 57 / 100);
         const int mixerY = area.getY() + playlistHeight + gap;
         const int mixerHeight = juce::jmax(190, area.getBottom() - mixerY);
-        browserWindow->setBounds(area.getRight() - juce::jmin(300, area.getWidth() / 3),
-                                 area.getY() + 22, juce::jmin(300, area.getWidth() / 3),
-                                 juce::jmin(560, workH - 44));
-        timelineWindow->setBounds(area.getX(), area.getY(), area.getWidth(), playlistHeight);
-        consoleWindow->setBounds(area.getX(), mixerY, area.getWidth(), mixerHeight);
-        browserWindow->setVisible(false);
+        const int dockBrowserW = juce::jlimit(190, 250, area.getWidth() / 5);
+        const int dockGap = 8;
+        const int editorX = area.getX() + dockBrowserW + dockGap;
+        const int editorW = juce::jmax(320, area.getRight() - editorX);
+        browserWindow->setBounds(area.getX(), area.getY(), dockBrowserW, workH);
+        timelineWindow->setBounds(editorX, area.getY(), editorW, playlistHeight);
+        consoleWindow->setBounds(editorX, mixerY, editorW, mixerHeight);
+        beatWindow->setBounds(editorX + 24, area.getY() + 28,
+                              juce::jmin(editorW - 48, 980), juce::jmin(workH - 56, 260));
+        noteWindow->setBounds(editorX + 18, area.getY() + 18,
+                              juce::jmin(editorW - 36, 1100), juce::jmin(workH - 36, 560));
+        browserWindow->setVisible(true);
         timelineWindow->setVisible(true);
         beatWindow->setVisible(false);
+        noteWindow->setVisible(false);
         consoleWindow->setVisible(true);
     }
     else if (preset == 1) // Arrangement Focus
@@ -772,7 +767,6 @@ void MainComponent::timerCallback()
     timeLabel.setText(formatTime(engine.getPosition()) + " / " + formatTime(engine.getLength()),
                       juce::dontSendNotification);
     waveform.setPlayhead(engine.getPosition(), engine.getLength());
-    topLogo.setPhase(static_cast<float> (juce::Time::getMillisecondCounterHiRes() / 6000.0));
     updateControls();
 
     if (changePending && ++changeTicks >= historyDelayTicks)
@@ -825,8 +819,6 @@ void MainComponent::paint(juce::Graphics& g)
 void MainComponent::resized()
 {
     auto menu = getLocalBounds().removeFromTop(34).reduced(10, 2);
-    topLogo.setBounds(menu.removeFromLeft(122));
-    menu.removeFromLeft(14);
     fileMenuButton.setBounds(menu.removeFromLeft(58));
     editMenuButton.setBounds(menu.removeFromLeft(58));
     viewMenuButton.setBounds(menu.removeFromLeft(58));
@@ -898,8 +890,6 @@ void MainComponent::resized()
         }
     }
 
-    if (splash != nullptr)
-        splash->setBounds(getLocalBounds());
 }
 
 juce::String MainComponent::formatTime(double seconds)
