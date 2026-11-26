@@ -62,7 +62,7 @@ public:
 
     void resized() override
     {
-        content->setBounds(getLocalBounds().reduced(1).withTrimmedTop(titleHeight));
+        content->setBounds(getLocalBounds().reduced(1).withTrimmedTop(titleHeight).withTrimmedRight(resizeGrip).withTrimmedBottom(resizeGrip));
     }
 
     void mouseDown(const juce::MouseEvent& e) override
