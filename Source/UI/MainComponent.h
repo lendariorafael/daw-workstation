@@ -1,6 +1,7 @@
 #pragma once
 
 #include <juce_gui_basics/juce_gui_basics.h>
+#include <cmath>
 #include "../AudioEngine/AudioEngine.h"
 #include "../Model/ProjectModel.h"
 #include "../Model/ProjectHistory.h"
@@ -28,7 +29,7 @@ public:
     void paint(juce::Graphics& g) override
     {
         auto r=getLocalBounds().toFloat().reduced(2.0f);
-        const auto bg=getToggleState()?DawLookAndFeel::accentDim:(isMouseOver()?DawLookAndFeel::panelLight:DawLookAndFeel::panel);
+        const auto bg=getToggleState()?DawLookAndFeel::accent.darker(0.35f):(isMouseOver()?DawLookAndFeel::panelLight:DawLookAndFeel::panel);
         g.setColour(bg); g.fillRoundedRectangle(r,5.0f);
         g.setColour(getToggleState()?DawLookAndFeel::accent:DawLookAndFeel::text.withAlpha(0.88f));
         const auto c=r.getCentre(); const float x=c.x,y=c.y;
@@ -47,7 +48,7 @@ public:
             case Icon::Notes:
                 line(x-2,y-6,x-2,y+3); line(x-2,y-6,x+5,y-8); line(x+5,y-8,x+5,y+1); g.drawEllipse(x-7,y+1,6,4,sw); g.drawEllipse(x,y-1,6,4,sw); break;
             case Icon::Plugins:
-                {juce::Path p; p.addPolygon({x,y-8,x+7,y,x,y+8,x-7,y},4); g.strokePath(p,juce::PathStrokeType(sw)); line(x-4,y,x+4,y);} break;
+                {juce::Path p; p.startNewSubPath(x,y-8); p.lineTo(x+7,y); p.lineTo(x,y+8); p.lineTo(x-7,y); p.closeSubPath(); g.strokePath(p,juce::PathStrokeType(sw)); line(x-4,y,x+4,y);} break;
             case Icon::Decks:
                 g.drawEllipse(x-7,y-7,14,14,sw); g.drawEllipse(x-3,y-3,6,6,sw); g.fillEllipse(x-1,y-1,2,2); break;
             case Icon::Automation:
