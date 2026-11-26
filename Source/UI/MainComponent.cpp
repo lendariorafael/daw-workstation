@@ -231,9 +231,9 @@ void MainComponent::showMenu(const juce::String& menuName)
     {
         menu.addItem(1, "Browser", true, browserWindow->isVisible());
         menu.addItem(2, "Playlist", true, timelineWindow->isVisible());
-        menu.addItem(3, "Channel Rack", true, beatWindow->isVisible());
+        menu.addItem(3, "Patterns", true, beatWindow->isVisible());
         menu.addItem(4, "Mixer", true, consoleWindow->isVisible());
-        menu.addItem(5, "Piano Roll", true, noteWindow->isVisible());
+        menu.addItem(5, "Note Editor", true, noteWindow->isVisible());
         menu.addItem(6, "Plugin Vault", true, vaultWindow->isVisible());
         menu.addItem(7, "Mashup decks", true, mashupWindow->isVisible());
         menu.addSeparator();
@@ -244,7 +244,7 @@ void MainComponent::showMenu(const juce::String& menuName)
     {
         menu.addItem(1, "DJ Mashup");
         menu.addItem(2, "Plugin Vault");
-        menu.addItem(3, "Piano Roll");
+        menu.addItem(3, "Note Editor");
         menu.addItem(4, "Load audio");
         menu.addItem(5, "Automation editor");
     }
