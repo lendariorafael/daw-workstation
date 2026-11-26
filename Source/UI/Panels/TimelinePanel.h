@@ -19,13 +19,16 @@ public:
         startTimerHz(30);
     }
 
-    enum class Tool { Select, Cut };
+    enum class Tool { Select, Cut, Pencil, Brush, Copy };
 
     bool keyPressed(const juce::KeyPress& key) override
     {
         const auto c = juce::CharacterFunctions::toLowerCase(key.getTextCharacter());
-        if (c == 'c') { setTool(Tool::Cut);    return true; }
+        if (c == 'c') { setTool(Tool::Cut); return true; }
         if (c == 'd') { setTool(Tool::Select); return true; }
+        if (c == 'p') { setTool(Tool::Pencil); return true; }
+        if (c == 'b') { setTool(Tool::Brush); return true; }
+        if (c == 'x') { setTool(Tool::Copy); return true; }
         return false;
     }
 
@@ -120,15 +123,12 @@ public:
 
         // Botão da ferramenta (Selecionar / Cortar)
         const auto tb = toolButtonBounds();
-        const bool cutting = tool == Tool::Cut;
-        g.setColour(cutting ? DawLookAndFeel::accent : DawLookAndFeel::panelLight);
+        g.setColour(DawLookAndFeel::accent.withAlpha(0.22f));
         g.fillRoundedRectangle(tb.toFloat(), 6.0f);
-        drawBladeIcon(g, juce::Rectangle<float>((float) tb.getX() + 6.0f, (float) tb.getY() + 4.0f, 18.0f, 18.0f),
-                      cutting ? DawLookAndFeel::background : DawLookAndFeel::text);
-        g.setColour(cutting ? DawLookAndFeel::background : DawLookAndFeel::text);
+        g.setColour(DawLookAndFeel::accent);
         g.setFont(DawLookAndFeel::uiFont(11.0f, true));
-        g.drawText(cutting ? I18n::t("tool.cut") : I18n::t("tool.select"),
-                   tb.withTrimmedLeft(28), juce::Justification::centredLeft, false);
+        g.drawText("TOOL  " + toolName() + "   ·   click to cycle",
+                   tb.reduced(10, 0), juce::Justification::centred, false);
 
         // Cursor de reprodução
         const float px = nameWidth + (float) (model.playheadSeconds / model.secondsPerBar()) * barW;
@@ -169,7 +169,7 @@ public:
         // Botão da ferramenta no canto superior direito da régua.
         if (toolButtonBounds().contains(p))
         {
-            setTool(tool == Tool::Cut ? Tool::Select : Tool::Cut);
+            setTool(static_cast<Tool>((static_cast<int>(tool) + 1) % 5));
             return;
         }
 
@@ -195,22 +195,71 @@ public:
         }
 
         const int bar = juce::jlimit(0, totalBars - 1, (int) ((p.x - nameWidth) / barWidth()));
+        if (tool == Tool::Select)
+            return;
 
-        for (size_t k = 0; k < model.clips.size(); ++k)
+        if (tool == Tool::Copy)
         {
-            if (model.clips[k].channel == row && model.clips[k].startBar == bar)
-            {
-                model.clips.erase(model.clips.begin() + (std::ptrdiff_t) k);
-                model.changed();
-                return;
-            }
+            for (const auto& clip : model.clips)
+                if (clip.channel == row && bar >= clip.startBar && bar < clip.startBar + clip.lengthBars)
+                {
+                    const int destination = clip.startBar + clip.lengthBars;
+                    if (destination < totalBars)
+                    {
+                        model.clips.push_back(Clip { row, destination, clip.lengthBars });
+                        model.changed();
+                    }
+                    return;
+                }
+            return;
         }
+
+        addClipAt(row, bar);
+        lastPaintRow = row;
+        lastPaintBar = bar;
+    }
+
+private:
+    void mouseDrag(const juce::MouseEvent& e) override
+    {
+        if (tool != Tool::Brush || e.y < rulerHeight || e.x < nameWidth)
+            return;
+
+        const int row = (e.y - rulerHeight + scrollY) / rowHeight;
+        if (row < 0 || row >= (int) model.channels.size())
+            return;
+        const int bar = juce::jlimit(0, totalBars - 1, (int) ((e.x - nameWidth) / barWidth()));
+        if (row != lastPaintRow || bar != lastPaintBar)
+        {
+            addClipAt(row, bar);
+            lastPaintRow = row;
+            lastPaintBar = bar;
+        }
+    }
+
+    void addClipAt(int row, int bar)
+    {
+        for (size_t k = 0; k < model.clips.size(); ++k)
+            if (model.clips[k].channel == row && model.clips[k].startBar == bar)
+                return;
 
         model.clips.push_back(Clip { row, bar, 1 });
         model.changed();
     }
 
-private:
+    juce::String toolName() const
+    {
+        switch (tool)
+        {
+            case Tool::Select: return "SELECT";
+            case Tool::Cut:    return "SLICE";
+            case Tool::Pencil: return "PENCIL";
+            case Tool::Brush:  return "BRUSH";
+            case Tool::Copy:   return "COPY";
+        }
+        return "SELECT";
+    }
+
     // Corta o clip sob o cursor no compasso mais próximo. Só corta dentro de um clip.
     void cutAt(int row, int x)
     {
@@ -236,7 +285,7 @@ private:
 
     juce::Rectangle<int> toolButtonBounds() const
     {
-        return { getWidth() - 132, 4, 120, rulerHeight - 8 };
+        return { getWidth() - 230, 4, 218, rulerHeight - 8 };
     }
 
     // Ícone de lâmina, desenhado de propósito para ser diferente das tesouras de outros programas:
@@ -297,4 +346,6 @@ private:
     int scrollY = 0;
     int hoverRow = -1;
     Tool tool = Tool::Select;
+    int lastPaintRow = -1;
+    int lastPaintBar = -1;
 };
