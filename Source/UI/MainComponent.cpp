@@ -323,7 +323,7 @@ void MainComponent::showMenu(const juce::String& menuName)
             {
                 if (result == 1)
                     juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon, "Opalo shortcuts",
-                        "Ctrl+N  New project\nCtrl+O  Open project\nCtrl+S  Save\nCtrl+Z  Undo\nCtrl+Y  Redo\nC  Slice tool\nD  Select tool");
+                        "Ctrl+N  New project\nCtrl+O  Open project\nCtrl+S  Save\nCtrl+Z  Undo\nCtrl+Y  Redo\nC  Slice\nD  Select\nP  Pencil\nB  Brush\nX  Copy");
                 else
                     juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon, "About Opalo",
                         "Opalo Digital Audio Workstation\nVersion 0.1.0\nA creative audio workspace.");
@@ -852,9 +852,9 @@ void MainComponent::resized()
     transport.removeFromLeft(10);
     bpmLabel.setBounds(transport.removeFromLeft(86));
     transport.removeFromLeft(10);
-    timeLabel.setBounds(transport.removeFromRight(100));
+    timeLabel.setBounds(transport.removeFromRight(90));
     transport.removeFromRight(10);
-    volumeSlider.setBounds(transport.removeFromRight(120));
+    volumeSlider.setBounds(transport.removeFromRight(100));
     transport.removeFromRight(12);
     fileLabel.setBounds(transport);
 
