@@ -5,7 +5,7 @@
 
 namespace OpaloFile
 {
-    constexpr int formatVersion = 2;
+    constexpr int formatVersion = 3;
     inline juce::String extensionName() { return ".opal"; }
 
     inline juce::String stepsToString(const std::array<bool, 16>& steps)
@@ -23,6 +23,26 @@ namespace OpaloFile
         root->setAttribute("masterVolume", (double) m.masterVolume);
         root->setAttribute("selectedChannel", m.selectedChannel);
         root->setAttribute("selectedPattern", m.selectedPattern);
+
+        auto* masterFx = root->createNewChildElement("MasterEffects");
+        for (int i = 0; i < (int) m.masterEffects.size(); ++i)
+        {
+            const auto& slot = m.masterEffects[(size_t) i];
+            if (slot.isEmpty()) continue;
+            auto* se = masterFx->createNewChildElement("Slot");
+            se->setAttribute("index", i); se->setAttribute("name", slot.name);
+            se->setAttribute("pluginId", slot.pluginId); se->setAttribute("bypassed", slot.bypassed ? 1 : 0);
+        }
+
+        auto* automation = root->createNewChildElement("Automation");
+        for (const auto& lane : m.automationLanes)
+        {
+            auto* le = automation->createNewChildElement("Lane");
+            le->setAttribute("name", lane.name); le->setAttribute("target", lane.target);
+            le->setAttribute("colour", lane.colour.toString());
+            for (const auto& point : lane.points)
+            { auto* pe = le->createNewChildElement("Point"); pe->setAttribute("time", point.time); pe->setAttribute("value", (double) point.value); }
+        }
 
         auto* patterns = root->createNewChildElement("Patterns");
         for (const auto& p : m.patterns)
@@ -101,6 +121,14 @@ namespace OpaloFile
         m.patterns.clear();
         m.bpm = juce::jlimit(20.0, 300.0, root.getDoubleAttribute("bpm", 120.0));
         m.masterVolume = (float) juce::jlimit(0.0, 1.0, root.getDoubleAttribute("masterVolume", 0.8));
+        m.masterEffects.assign(ChannelData::kMaxEffects, EffectSlot{});
+        m.automationLanes.clear();
+        if (auto* fx = root.getChildByName("MasterEffects"))
+            forEachXmlChildElementWithTagName(*fx, se, "Slot")
+            { const int i = juce::jlimit(0, ChannelData::kMaxEffects - 1, se->getIntAttribute("index")); auto& slot=m.masterEffects[(size_t)i]; slot.name=se->getStringAttribute("name"); slot.pluginId=se->getStringAttribute("pluginId"); slot.bypassed=se->getIntAttribute("bypassed")!=0; }
+        if (auto* automation = root.getChildByName("Automation"))
+            forEachXmlChildElementWithTagName(*automation, le, "Lane")
+            { AutomationLane lane; lane.name=le->getStringAttribute("name", "Automation"); lane.target=le->getStringAttribute("target"); lane.colour=juce::Colour::fromString(le->getStringAttribute("colour", "ff62cdbb")); forEachXmlChildElementWithTagName(*le, pe, "Point") { lane.points.push_back({pe->getDoubleAttribute("time"), (float)juce::jlimit(0.0,1.0,pe->getDoubleAttribute("value"))}); } m.automationLanes.push_back(std::move(lane)); }
 
         if (auto* patterns = root.getChildByName("Patterns"))
             forEachXmlChildElementWithTagName(*patterns, e, "Pattern")
