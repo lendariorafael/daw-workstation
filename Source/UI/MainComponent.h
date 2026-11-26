@@ -145,15 +145,15 @@ private:
     juce::Label timeLabel;
     WaveformView waveform { engine.getFormatManager() };
 
-    OpaloIconButton browserButton   { OpaloIconButton::Icon::Browser } "Browser" };
-    OpaloIconButton timelineButton  { OpaloIconButton::Icon::Playlist } "Playlist" };
-    OpaloIconButton consoleButton   { OpaloIconButton::Icon::Mixer } "Mixer" };
-    OpaloIconButton beatButton      { "Patterns" };
-    OpaloIconButton noteButton      { "Note Canvas" };
-    OpaloIconButton vaultButton     { "Plugin Vault" };
-    OpaloIconButton mashupButton    { "Mashup" };
-    OpaloIconButton settingsButton  { OpaloIconButton::Icon::Settings } "Settings" };
-    OpaloIconButton automationButton { OpaloIconButton::Icon::Automation } "Automation" };
+    OpaloIconButton browserButton   { OpaloIconButton::Icon::Browser };
+    OpaloIconButton timelineButton  { OpaloIconButton::Icon::Playlist };
+    OpaloIconButton consoleButton   { OpaloIconButton::Icon::Mixer };
+    OpaloIconButton beatButton      { OpaloIconButton::Icon::Patterns };
+    OpaloIconButton noteButton      { OpaloIconButton::Icon::Notes };
+    OpaloIconButton vaultButton     { OpaloIconButton::Icon::Plugins };
+    OpaloIconButton mashupButton    { OpaloIconButton::Icon::Decks };
+    OpaloIconButton settingsButton  { OpaloIconButton::Icon::Settings };
+    OpaloIconButton automationButton { OpaloIconButton::Icon::Automation };
 
     juce::TextButton newButton    { "New" };
     juce::TextButton openButton   { "Open" };
