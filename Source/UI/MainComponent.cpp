@@ -284,8 +284,20 @@ void MainComponent::showMenu(const juce::String& menuName)
             {
                 if (result == 1) self->undo();
                 else if (result == 2) self->redo();
-                else if (result == 3) self->timelineWindow->setVisible(true);
-                else if (result == 4) self->timelineWindow->setVisible(true);
+                else if (result == 3)
+                {
+                    if (auto* timeline = dynamic_cast<TimelinePanel*>(self->timelineWindow->getContentComponent()))
+                        timeline->setTool(TimelinePanel::Tool::Cut);
+                    self->timelineWindow->setVisible(true);
+                    self->timelineWindow->toFront(false);
+                }
+                else if (result == 4)
+                {
+                    if (auto* timeline = dynamic_cast<TimelinePanel*>(self->timelineWindow->getContentComponent()))
+                        timeline->setTool(TimelinePanel::Tool::Select);
+                    self->timelineWindow->setVisible(true);
+                    self->timelineWindow->toFront(false);
+                }
             }
             else if (menuName == "View")
             {
@@ -301,9 +313,9 @@ void MainComponent::showMenu(const juce::String& menuName)
             }
             else if (menuName == "Tools")
             {
-                if (result == 1) self->mashupWindow->setVisible(true);
-                else if (result == 2) self->vaultWindow->setVisible(true);
-                else if (result == 3) self->noteWindow->setVisible(true);
+                if (result == 1) { self->mashupWindow->setVisible(true); self->mashupWindow->toFront(false); }
+                else if (result == 2) { self->vaultWindow->setVisible(true); self->vaultWindow->toFront(false); }
+                else if (result == 3) { self->noteWindow->setVisible(true); self->noteWindow->toFront(false); }
                 else if (result == 4) self->loadAudio();
             }
             else
