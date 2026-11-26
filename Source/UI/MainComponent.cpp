@@ -10,13 +10,39 @@ namespace
 MainComponent::MainComponent()
 {
     I18n::current() = I18n::fromCode(OpaloSettings::get().getValue("language", "pt"));
-
     juce::LookAndFeel::setDefaultLookAndFeel(&lookAndFeel);
     setWantsKeyboardFocus(true);
 
     loadAudioButton.onClick = [this] { loadAudio(); };
     playButton.onClick = [this] { engine.play(); };
     stopButton.onClick = [this] { engine.stop(); };
+    recordButton.setTooltip("Audio recording is not available in this build yet.");
+    recordButton.onClick = [this]
+    {
+        fileLabel.setText("Recording input will be added with the audio capture engine.",
+                          juce::dontSendNotification);
+    };
+
+    bpmLabel.setText(juce::String(model.bpm, 1) + " BPM", juce::dontSendNotification);
+    bpmLabel.setEditable(true, true, false);
+    bpmLabel.setJustificationType(juce::Justification::centred);
+    bpmLabel.setTooltip("Double-click to edit the project tempo.");
+    bpmLabel.onTextChange = [this]
+    {
+        const double bpm = bpmLabel.getText().upToFirstOccurrenceOf(" ", false, false).getDoubleValue();
+        if (bpm >= 20.0 && bpm <= 300.0)
+        {
+            model.bpm = bpm;
+            model.changed();
+        }
+        bpmLabel.setText(juce::String(model.bpm, 1) + " BPM", juce::dontSendNotification);
+    };
+
+    fileMenuButton.onClick = [this] { showMenu("File"); };
+    editMenuButton.onClick = [this] { showMenu("Edit"); };
+    viewMenuButton.onClick = [this] { showMenu("View"); };
+    toolsMenuButton.onClick = [this] { showMenu("Tools"); };
+    helpMenuButton.onClick = [this] { showMenu("Help"); };
 
     newButton.onClick = [this] { newProject(); };
     openButton.onClick = [this] { showOpenMenu(); };
@@ -24,7 +50,7 @@ MainComponent::MainComponent()
     saveAsButton.onClick = [this] { saveProjectAs(); };
 
     volumeSlider.setSliderStyle(juce::Slider::LinearHorizontal);
-    volumeSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 56, 22);
+    volumeSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 52, 20);
     volumeSlider.setRange(0.0, 1.0, 0.001);
     volumeSlider.setValue(0.8, juce::dontSendNotification);
     engine.setGain(0.8f);
@@ -32,63 +58,93 @@ MainComponent::MainComponent()
 
     fileLabel.setText(I18n::t("status.ready"), juce::dontSendNotification);
     fileLabel.setColour(juce::Label::textColourId, DawLookAndFeel::muted);
-
     timeLabel.setText("00:00.00 / 00:00.00", juce::dontSendNotification);
     timeLabel.setJustificationType(juce::Justification::centredRight);
-
     waveform.onSeek = [this](double seconds) { engine.seek(seconds); };
 
-    for (auto* c : { static_cast<juce::Component*>(&topLogo),
-                     static_cast<juce::Component*>(&loadAudioButton),
-                     static_cast<juce::Component*>(&playButton),
-                     static_cast<juce::Component*>(&stopButton),
-                     static_cast<juce::Component*>(&volumeSlider),
-                     static_cast<juce::Component*>(&fileLabel),
-                     static_cast<juce::Component*>(&timeLabel),
-                     static_cast<juce::Component*>(&waveform),
-                     static_cast<juce::Component*>(&browserButton),
-                     static_cast<juce::Component*>(&timelineButton),
-                     static_cast<juce::Component*>(&consoleButton),
-                     static_cast<juce::Component*>(&beatButton),
-                     static_cast<juce::Component*>(&noteButton),
-                     static_cast<juce::Component*>(&vaultButton),
-                     static_cast<juce::Component*>(&newButton),
-                     static_cast<juce::Component*>(&openButton),
-                     static_cast<juce::Component*>(&saveButton),
-                     static_cast<juce::Component*>(&saveAsButton),
-                     static_cast<juce::Component*>(&mashupButton),
-                     static_cast<juce::Component*>(&settingsButton) })
-        addAndMakeVisible(c);
+    for (auto* component : {
+             static_cast<juce::Component*>(&topLogo),
+             static_cast<juce::Component*>(&fileMenuButton),
+             static_cast<juce::Component*>(&editMenuButton),
+             static_cast<juce::Component*>(&viewMenuButton),
+             static_cast<juce::Component*>(&toolsMenuButton),
+             static_cast<juce::Component*>(&helpMenuButton),
+             static_cast<juce::Component*>(&newButton),
+             static_cast<juce::Component*>(&openButton),
+             static_cast<juce::Component*>(&saveButton),
+             static_cast<juce::Component*>(&saveAsButton),
+             static_cast<juce::Component*>(&loadAudioButton),
+             static_cast<juce::Component*>(&playButton),
+             static_cast<juce::Component*>(&stopButton),
+             static_cast<juce::Component*>(&recordButton),
+             static_cast<juce::Component*>(&bpmLabel),
+             static_cast<juce::Component*>(&volumeSlider),
+             static_cast<juce::Component*>(&fileLabel),
+             static_cast<juce::Component*>(&timeLabel),
+             static_cast<juce::Component*>(&waveform),
+             static_cast<juce::Component*>(&browserButton),
+             static_cast<juce::Component*>(&timelineButton),
+             static_cast<juce::Component*>(&consoleButton),
+             static_cast<juce::Component*>(&beatButton),
+             static_cast<juce::Component*>(&noteButton),
+             static_cast<juce::Component*>(&vaultButton),
+             static_cast<juce::Component*>(&mashupButton),
+             static_cast<juce::Component*>(&settingsButton) })
+        addAndMakeVisible(component);
 
-    setSize(1200, 700);
+    setSize(1440, 900);
 
-    browserWindow  = std::make_unique<PanelWindow>(I18n::t("view.browser"), new BrowserPanel(model),    820, 560);
-    timelineWindow = std::make_unique<PanelWindow>(I18n::t("view.playlist"), new TimelinePanel(model),  1100, 560);
-    consoleWindow  = std::make_unique<PanelWindow>(I18n::t("view.mixer"),   new ConsolePanel(model),   1280, 640);
-    beatWindow     = std::make_unique<PanelWindow>(I18n::t("view.beat"),    new BeatDeckPanel(model),   860, 520);
-    noteWindow     = std::make_unique<PanelWindow>(I18n::t("view.notes"),   new NoteCanvasPanel(model), 900, 640);
-    vaultWindow    = std::make_unique<PanelWindow>(I18n::t("view.vault"),   new PluginVaultPanel(model), 760, 520);
-    mashupWindow   = std::make_unique<PanelWindow>(I18n::t("view.mashup"),  new MashupPanel(model, engine), 1000, 560);
-    settingsWindow = std::make_unique<PanelWindow>(I18n::t("settings.title"),
-                                                   new SettingsPanel(engine, [this] { refreshTexts(); }),
-                                                   660, 560);
+    browserWindow  = std::make_unique<PanelWindow>(I18n::t("view.browser"), new BrowserPanel(model), 230, 620);
+    timelineWindow = std::make_unique<PanelWindow>(I18n::t("view.playlist"), new TimelinePanel(model), 900, 330);
+    consoleWindow  = std::make_unique<PanelWindow>(I18n::t("view.mixer"), new ConsolePanel(model), 900, 230);
+    beatWindow     = std::make_unique<PanelWindow>(I18n::t("view.beat"), new BeatDeckPanel(model), 900, 190);
+    noteWindow     = std::make_unique<PanelWindow>(I18n::t("view.notes"), new NoteCanvasPanel(model), 900, 430);
+    vaultWindow    = std::make_unique<PanelWindow>(I18n::t("view.vault"), new PluginVaultPanel(model), 520, 420);
+    mashupWindow   = std::make_unique<PanelWindow>(I18n::t("view.mashup"), new MashupPanel(model, engine), 920, 520);
+    settingsWindow = std::make_unique<PanelWindow>(
+        I18n::t("settings.title"),
+        new SettingsPanel(engine, [this] { refreshTexts(); },
+                          [this](int preset) { applyLayoutPreset(preset); }),
+        620, 430);
 
-    bindPanel(browserButton,  *browserWindow);
+    for (auto* panel : { browserWindow.get(), timelineWindow.get(), consoleWindow.get(),
+                         beatWindow.get(), noteWindow.get(), vaultWindow.get(),
+                         mashupWindow.get(), settingsWindow.get() })
+        addAndMakeVisible(panel);
+
+    bindPanel(browserButton, *browserWindow);
     bindPanel(timelineButton, *timelineWindow);
-    bindPanel(consoleButton,  *consoleWindow);
-    bindPanel(beatButton,     *beatWindow);
-    bindPanel(noteButton,     *noteWindow);
-    bindPanel(vaultButton,    *vaultWindow);
-    bindPanel(mashupButton,   *mashupWindow);
+    bindPanel(consoleButton, *consoleWindow);
+    bindPanel(beatButton, *beatWindow);
+    bindPanel(noteButton, *noteWindow);
+    bindPanel(vaultButton, *vaultWindow);
+    bindPanel(mashupButton, *mashupWindow);
     bindPanel(settingsButton, *settingsWindow);
 
-    refreshTexts();
+    browserButton.setButtonText("▤  Browser");
+    timelineButton.setButtonText("▦  Playlist");
+    consoleButton.setButtonText("▥  Mixer");
+    beatButton.setButtonText("☷  Channel Rack");
+    noteButton.setButtonText("♫  Piano Roll");
+    vaultButton.setButtonText("◈  Plugins");
+    mashupButton.setButtonText("◉  Mashup");
+    settingsButton.setButtonText("⚙  Settings");
 
+    browserButton.setTooltip("Show or hide the sound browser");
+    timelineButton.setTooltip("Show or hide the Playlist");
+    consoleButton.setTooltip("Show or hide the Mixer");
+    beatButton.setTooltip("Show or hide the Channel Rack");
+    noteButton.setTooltip("Show or hide the Piano Roll");
+    vaultButton.setTooltip("Show or hide the VST3 Plugin Vault");
+    mashupButton.setTooltip("Show or hide the DJ Mashup decks");
+
+    refreshTexts();
     loadRecentList();
     resetHistory();
-
     model.addChangeListener(this);
     startTimerHz(30);
+
+    applyLayoutPreset(0);
 
     splash = std::make_unique<SplashScreen>();
     addAndMakeVisible(*splash);
@@ -139,7 +195,7 @@ void MainComponent::bindPanel(juce::TextButton& button, PanelWindow& window)
     {
         window.setVisible(button.getToggleState());
         if (button.getToggleState())
-            window.toFront(true);
+            window.toFront(false);
     };
 
     window.onVisibilityChanged = [&button](bool visible)
