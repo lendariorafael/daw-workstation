@@ -19,7 +19,7 @@ public:
         auto* content = new MainComponent();
         content->onTitleChanged = [this](const juce::String& title) { setName(title); };
         setContentOwned(content, true);
-        setResizeLimits(960, 540, 4096, 2160);
+        setResizeLimits(960, 720, 4096, 2160);
         setResizable(true, true);
         setDropShadowEnabled(true);
         centreWithSize(getWidth(), getHeight());
