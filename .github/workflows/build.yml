@@ -34,6 +34,11 @@ jobs:
         shell: pwsh
         run: Invoke-WebRequest -Uri https://aka.ms/vs/17/release/vc_redist.x64.exe -OutFile installer\vc_redist.x64.exe
 
+      - name: Prepare installer output folder
+        if: github.event_name != 'pull_request'
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force -Path dist | Out-Null
+
       - name: Build Windows installer
         if: github.event_name != 'pull_request'
         shell: pwsh
