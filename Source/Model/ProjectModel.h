@@ -36,6 +36,16 @@ struct EffectSlot
     bool isEmpty() const { return pluginId.isEmpty(); }
 };
 
+struct AutomationPoint { double time = 0.0; float value = 0.0f; };
+
+struct AutomationLane
+{
+    juce::String name;
+    juce::String target;
+    juce::Colour colour = juce::Colour(0xff62cdbb);
+    std::vector<AutomationPoint> points;
+};
+
 struct ChannelData
 {
     static constexpr int kMaxEffects = 50;
@@ -87,6 +97,8 @@ public:
     int selectedPattern = 0;
     double bpm = 120.0;
     float masterVolume = 0.8f;
+    std::vector<EffectSlot> masterEffects = std::vector<EffectSlot>(ChannelData::kMaxEffects);
+    std::vector<AutomationLane> automationLanes;
     double playheadSeconds = 0.0;
     juce::KnownPluginList plugins;
 
