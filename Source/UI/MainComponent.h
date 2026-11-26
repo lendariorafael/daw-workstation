@@ -15,6 +15,7 @@
 #include "Panels/TimelinePanel.h"
 #include "Panels/MashupPanel.h"
 #include "Panels/SettingsPanel.h"
+#include "Panels/AutomationPanel.h"
 #include "../I18n/Strings.h"
 #include "../Settings/OpaloSettings.h"
 
@@ -110,6 +111,7 @@ private:
     juce::TextButton vaultButton     { "Plugin Vault" };
     juce::TextButton mashupButton    { "Mashup" };
     juce::TextButton settingsButton  { "Settings" };
+    juce::TextButton automationButton { "Automation" };
 
     juce::TextButton newButton    { "New" };
     juce::TextButton openButton   { "Open" };
@@ -130,6 +132,7 @@ private:
     std::unique_ptr<PanelWindow> vaultWindow;
     std::unique_ptr<PanelWindow> mashupWindow;
     std::unique_ptr<PanelWindow> settingsWindow;
+    std::unique_ptr<PanelWindow> automationWindow;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };
