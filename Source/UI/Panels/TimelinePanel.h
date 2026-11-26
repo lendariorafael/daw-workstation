@@ -123,12 +123,19 @@ public:
 
         // Botão da ferramenta (Selecionar / Cortar)
         const auto tb = toolButtonBounds();
-        g.setColour(DawLookAndFeel::accent.withAlpha(0.22f));
-        g.fillRoundedRectangle(tb.toFloat(), 6.0f);
-        g.setColour(DawLookAndFeel::accent);
-        g.setFont(DawLookAndFeel::uiFont(11.0f, true));
-        g.drawText("TOOL  " + toolName() + "   ·   click to cycle",
-                   tb.reduced(10, 0), juce::Justification::centred, false);
+        static const char* toolLabels[] = { "SEL", "SLICE", "PENCIL", "BRUSH", "COPY" };
+        const int segmentWidth = tb.getWidth() / 5;
+        for (int i = 0; i < 5; ++i)
+        {
+            auto segment = tb.withX(tb.getX() + i * segmentWidth).withWidth(
+                i == 4 ? tb.getWidth() - i * segmentWidth : segmentWidth);
+            const bool active = i == static_cast<int>(tool);
+            g.setColour(active ? DawLookAndFeel::accent : DawLookAndFeel::panelLight);
+            g.fillRoundedRectangle(segment.toFloat().reduced(1.0f), 4.0f);
+            g.setColour(active ? DawLookAndFeel::background : DawLookAndFeel::text);
+            g.setFont(DawLookAndFeel::uiFont(9.5f, true));
+            g.drawText(toolLabels[i], segment, juce::Justification::centred, false);
+        }
 
         // Cursor de reprodução
         const float px = nameWidth + (float) (model.playheadSeconds / model.secondsPerBar()) * barW;
@@ -169,7 +176,9 @@ public:
         // Botão da ferramenta no canto superior direito da régua.
         if (toolButtonBounds().contains(p))
         {
-            setTool(static_cast<Tool>((static_cast<int>(tool) + 1) % 5));
+            const auto bounds = toolButtonBounds();
+            const int selected = juce::jlimit(0, 4, (p.x - bounds.getX()) * 5 / juce::jmax(1, bounds.getWidth()));
+            setTool(static_cast<Tool>(selected));
             return;
         }
 
@@ -248,19 +257,6 @@ private:
         model.changed();
     }
 
-    juce::String toolName() const
-    {
-        switch (tool)
-        {
-            case Tool::Select: return "SELECT";
-            case Tool::Cut:    return "SLICE";
-            case Tool::Pencil: return "PENCIL";
-            case Tool::Brush:  return "BRUSH";
-            case Tool::Copy:   return "COPY";
-        }
-        return "SELECT";
-    }
-
     // Corta o clip sob o cursor no compasso mais próximo. Só corta dentro de um clip.
     void cutAt(int row, int x)
     {
@@ -286,7 +282,7 @@ private:
 
     juce::Rectangle<int> toolButtonBounds() const
     {
-        return { getWidth() - 230, 4, 218, rulerHeight - 8 };
+        return { getWidth() - 292, 4, 280, rulerHeight - 8 };
     }
 
     // Ícone de lâmina, desenhado de propósito para ser diferente das tesouras de outros programas:
