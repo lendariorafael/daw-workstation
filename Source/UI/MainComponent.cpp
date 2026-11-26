@@ -333,6 +333,7 @@ void MainComponent::showMenu(const juce::String& menuName)
 
 void MainComponent::applyLayoutPreset(int preset)
 {
+    preset = juce::jlimit(0, 3, preset);
     const auto area = getLocalBounds().withTrimmedTop(132).reduced(10);
     const int gap = 8;
     const int browserW = juce::jlimit(190, 280, area.getWidth() / 6);
@@ -356,11 +357,13 @@ void MainComponent::applyLayoutPreset(int preset)
     if (preset == 0) // Studio Default
     {
         browserWindow->setBounds(area.getX(), area.getY(), browserW, workH);
-        timelineWindow->setBounds(workX, area.getY(), workW, juce::jmax(190, workH * 42 / 100));
-        beatWindow->setBounds(workX, area.getY() + workH * 42 / 100 + gap, workW,
-                              juce::jmax(150, workH * 23 / 100));
-        consoleWindow->setBounds(workX, area.getY() + workH * 65 / 100 + gap * 2, workW,
-                                  juce::jmax(170, workH * 35 / 100 - gap * 2));
+        const int playlistHeight = workH * 40 / 100;
+        const int rackHeight = juce::jmax(150, workH * 22 / 100);
+        const int mixerHeight = juce::jmax(150, workH - playlistHeight - rackHeight - gap * 2);
+        timelineWindow->setBounds(workX, area.getY(), workW, playlistHeight);
+        beatWindow->setBounds(workX, area.getY() + playlistHeight + gap, workW, rackHeight);
+        consoleWindow->setBounds(workX, area.getY() + playlistHeight + rackHeight + gap * 2,
+                                  workW, mixerHeight);
         browserWindow->setVisible(true);
         timelineWindow->setVisible(true);
         beatWindow->setVisible(true);
