@@ -334,7 +334,7 @@ void MainComponent::showMenu(const juce::String& menuName)
 void MainComponent::applyLayoutPreset(int preset)
 {
     preset = juce::jlimit(0, 3, preset);
-    const auto area = getLocalBounds().withTrimmedTop(132).reduced(10);
+    const auto area = getLocalBounds().withTrimmedTop(132).withTrimmedBottom(40).reduced(10);
     const int gap = 8;
     const int browserW = juce::jlimit(190, 280, area.getWidth() / 6);
     const int workX = area.getX() + browserW + gap;
@@ -813,6 +813,9 @@ void MainComponent::paint(juce::Graphics& g)
     auto shortcuts = getLocalBounds().withTrimmedTop(86).removeFromTop(46);
     g.setColour(OpaloDesign::surface0);
     g.fillRect(shortcuts);
+    auto waveformFooter = getLocalBounds().removeFromBottom(40);
+    g.setColour(OpaloDesign::surface1);
+    g.fillRect(waveformFooter);
     g.setColour(OpaloDesign::accent.withAlpha(0.48f));
     g.fillRect(0, 132, getWidth(), 1);
 }
@@ -865,13 +868,13 @@ void MainComponent::resized()
     mashupButton.setBounds(shortcuts.removeFromLeft(102));
     settingsButton.setBounds(shortcuts.removeFromRight(108));
 
-    waveform.setBounds(0, 0, 0, 0);
+    waveform.setBounds(getLocalBounds().withTrimmedTop(getHeight() - 40).reduced(10, 4));
 
     if (! layoutInitialized)
         applyLayoutPreset(0);
     else
     {
-        const auto workspace = getLocalBounds().withTrimmedTop(132).reduced(4);
+        const auto workspace = getLocalBounds().withTrimmedTop(132).withTrimmedBottom(40).reduced(4);
         for (auto* panel : { browserWindow.get(), timelineWindow.get(), consoleWindow.get(),
                              beatWindow.get(), noteWindow.get(), vaultWindow.get(),
                              mashupWindow.get(), settingsWindow.get() })
