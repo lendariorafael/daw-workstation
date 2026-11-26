@@ -11,9 +11,13 @@ public:
     explicit AutomationPanel(ProjectModel& m) : model(m)
     {
         addAndMakeVisible(lanes);
-        lanes.addItem("Master volume", 1);
-        lanes.addItem("Track 1 volume", 2);
-        lanes.addItem("Track 1 pan", 3);
+        lanes.addItem("MASTER / Volume", 1);
+        lanes.addItem("Track / Volume", 2);
+        lanes.addItem("Track / Pan", 3);
+        lanes.addItem("Track / Stereo width", 4);
+        lanes.addItem("Track / Left channel", 5);
+        lanes.addItem("Track / Right channel", 6);
+        lanes.addItem("Plugin / Parameter", 7);
         lanes.setSelectedId(1);
         lanes.onChange = [this] { repaint(); };
         addAndMakeVisible(addPoint);
@@ -25,7 +29,7 @@ public:
         {
             AutomationLane lane;
             lane.name = "Automation " + juce::String(model.automationLanes.size() + 1);
-            lane.target = "Master volume";
+            lane.target = targetForSelection();
             lane.points = { {0.0, 0.8f}, {4.0, 0.8f} };
             model.automationLanes.push_back(std::move(lane));
             model.changed();
@@ -90,11 +94,25 @@ public:
     }
 
 private:
+    juce::String targetForSelection() const
+    {
+        switch (lanes.getSelectedId())
+        {
+            case 2: return "Selected track volume";
+            case 3: return "Selected track pan";
+            case 4: return "Selected track stereo width";
+            case 5: return "Selected track left channel";
+            case 6: return "Selected track right channel";
+            case 7: return "Selected plugin parameter";
+            default: return "Master volume";
+        }
+    }
+
     void addAutomationPoint()
     {
         if(model.automationLanes.empty())
         {
-            AutomationLane lane; lane.name="Master Volume"; lane.target="Master volume";
+            AutomationLane lane; lane.name="Master Volume"; lane.target=targetForSelection();
             lane.points={{0.0,0.8f},{8.0,0.8f}};
             model.automationLanes.push_back(std::move(lane));
         }
