@@ -91,7 +91,8 @@ MainComponent::MainComponent()
              static_cast<juce::Component*>(&noteButton),
              static_cast<juce::Component*>(&vaultButton),
              static_cast<juce::Component*>(&mashupButton),
-             static_cast<juce::Component*>(&settingsButton) })
+             static_cast<juce::Component*>(&settingsButton),
+             static_cast<juce::Component*>(&automationButton) })
         addAndMakeVisible(component);
 
     browserWindow  = std::make_unique<PanelWindow>(I18n::t("view.browser"), new BrowserPanel(model), 230, 620);
@@ -101,6 +102,7 @@ MainComponent::MainComponent()
     noteWindow     = std::make_unique<PanelWindow>(I18n::t("view.notes"), new NoteCanvasPanel(model), 900, 430);
     vaultWindow    = std::make_unique<PanelWindow>(I18n::t("view.vault"), new PluginVaultPanel(model), 520, 420);
     mashupWindow   = std::make_unique<PanelWindow>(I18n::t("view.mashup"), new MashupPanel(model, engine), 920, 520);
+    automationWindow = std::make_unique<PanelWindow>("Automation", new AutomationPanel(model), 760, 360);
     settingsWindow = std::make_unique<PanelWindow>(
         I18n::t("settings.title"),
         new SettingsPanel(engine, [this] { refreshTexts(); },
@@ -109,7 +111,7 @@ MainComponent::MainComponent()
 
     for (auto* panel : { browserWindow.get(), timelineWindow.get(), consoleWindow.get(),
                          beatWindow.get(), noteWindow.get(), vaultWindow.get(),
-                         mashupWindow.get(), settingsWindow.get() })
+                         mashupWindow.get(), settingsWindow.get(), automationWindow.get() })
         addAndMakeVisible(panel);
 
     setSize(1440, 900);
@@ -122,6 +124,7 @@ MainComponent::MainComponent()
     bindPanel(vaultButton, *vaultWindow);
     bindPanel(mashupButton, *mashupWindow);
     bindPanel(settingsButton, *settingsWindow);
+    bindPanel(automationButton, *automationWindow);
 
     browserButton.setButtonText("⌕");
     timelineButton.setButtonText("▦");
@@ -131,6 +134,8 @@ MainComponent::MainComponent()
     vaultButton.setButtonText("◇");
     mashupButton.setButtonText("◉");
     settingsButton.setButtonText("⚙");
+    automationButton.setButtonText("⌁");
+    automationButton.setTooltip("Automation editor");
 
     browserButton.setTooltip("Browser — show or hide sound library");
     timelineButton.setTooltip("Playlist — show or hide arrangement");
@@ -233,6 +238,7 @@ void MainComponent::showMenu(const juce::String& menuName)
         menu.addItem(7, "Mashup decks", true, mashupWindow->isVisible());
         menu.addSeparator();
         menu.addItem(8, "Settings");
+        menu.addItem(9, "Automation");
     }
     else if (menuName == "Tools")
     {
@@ -240,6 +246,7 @@ void MainComponent::showMenu(const juce::String& menuName)
         menu.addItem(2, "Plugin Vault");
         menu.addItem(3, "Piano Roll");
         menu.addItem(4, "Load audio");
+        menu.addItem(5, "Automation editor");
     }
     else
     {
@@ -306,6 +313,7 @@ void MainComponent::showMenu(const juce::String& menuName)
                 else if (result == 2) { self->vaultWindow->setVisible(true); self->vaultWindow->toFront(false); }
                 else if (result == 3) { self->noteWindow->setVisible(true); self->noteWindow->toFront(false); }
                 else if (result == 4) self->loadAudio();
+                else if (result == 5) { self->automationWindow->setVisible(true); self->automationWindow->toFront(false); }
             }
             else
             {
@@ -339,7 +347,7 @@ void MainComponent::applyLayoutPreset(int preset)
 
     for (auto* panel : { browserWindow.get(), timelineWindow.get(), consoleWindow.get(),
                          beatWindow.get(), noteWindow.get(), vaultWindow.get(),
-                         mashupWindow.get(), settingsWindow.get() })
+                         mashupWindow.get(), settingsWindow.get(), automationWindow.get() })
         panel->setVisible(false);
 
     if (preset == 0) // Opalo Studio — arrangement above, mixer below
@@ -397,7 +405,7 @@ void MainComponent::applyLayoutPreset(int preset)
     layoutInitialized = true;
     for (auto* panel : { browserWindow.get(), timelineWindow.get(), beatWindow.get(),
                          consoleWindow.get(), noteWindow.get(), vaultWindow.get(),
-                         mashupWindow.get(), settingsWindow.get() })
+                         mashupWindow.get(), settingsWindow.get(), automationWindow.get() })
         if (panel->isVisible()) panel->toFront(false);
 
     repaint();
@@ -860,9 +868,10 @@ void MainComponent::resized()
     noteButton.setBounds(shortcuts.removeFromLeft(38));
     vaultButton.setBounds(shortcuts.removeFromLeft(38));
     mashupButton.setBounds(shortcuts.removeFromLeft(38));
+    automationButton.setBounds(shortcuts.removeFromLeft(38));
     settingsButton.setBounds(shortcuts.removeFromRight(38));
     for (auto* button : { &browserButton, &timelineButton, &beatButton, &consoleButton,
-                          &noteButton, &vaultButton, &mashupButton, &settingsButton })
+                          &noteButton, &vaultButton, &mashupButton, &automationButton, &settingsButton })
     {
         button->setColour(juce::TextButton::buttonColourId, OpaloDesign::surface1);
         button->setColour(juce::TextButton::buttonOnColourId, OpaloDesign::accentDim);
