@@ -250,6 +250,7 @@ private:
                                  + "   ·   " + juce::String(engine.deckRatio(i), 3) + "x",
                              juce::dontSendNotification);
         }
+        repaint();
     }
 
     static juce::String formatTime(double seconds)
