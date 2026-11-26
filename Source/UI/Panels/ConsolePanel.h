@@ -239,6 +239,7 @@ private:
 // Console: mixer com scroll horizontal. Só existem tiras suficientes para o que está no ecrã
 // (pool reciclado), por isso 1000 canais não criam 1000 conjuntos de componentes.
 class ConsolePanel : public juce::Component,
+                     public juce::ListBoxModel,
                      private juce::ChangeListener,
                      private juce::Timer
 {
@@ -267,6 +268,11 @@ public:
         masterLabel.setColour(juce::Label::textColourId, DawLookAndFeel::accent);
         addAndMakeVisible(masterLabel);
 
+        masterFxList.setModel(this);
+        masterFxList.setRowHeight(15);
+        masterFxList.setColour(juce::ListBox::backgroundColourId, DawLookAndFeel::background);
+        addAndMakeVisible(masterFxList);
+
         masterFader.setSliderStyle(juce::Slider::LinearVertical);
         masterFader.setRange(0.0, 1.0, 0.001);
         masterFader.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 56, 18);
@@ -291,8 +297,10 @@ public:
     void resized() override
     {
         auto area = getLocalBounds();
-        auto master = area.removeFromRight(94).reduced(5);
+        auto master = area.removeFromLeft(126).reduced(5);
         masterLabel.setBounds(master.removeFromTop(20));
+        masterFxList.setBounds(master.removeFromTop(4 * 15 + 6));
+        master.removeFromTop(5);
         masterFader.setBounds(master);
         viewport.setBounds(area);
         layoutStrips();
@@ -315,6 +323,34 @@ private:
         // Ao fazer scroll, recicla as tiras para os canais que entram no ecrã.
         if (viewport.getViewPositionX() / stripWidth != firstVisible)
             layoutStrips();
+    }
+
+    int getNumRows() override { return (int) model.masterEffects.size(); }
+
+    void paintListBoxItem(int row, juce::Graphics& g, int width, int height, bool selected) override
+    {
+        if (!juce::isPositiveAndBelow(row, (int)model.masterEffects.size())) return;
+        const auto& slot=model.masterEffects[(size_t)row];
+        g.fillAll(selected ? DawLookAndFeel::panelLight : DawLookAndFeel::background);
+        g.setColour(slot.isEmpty() ? DawLookAndFeel::muted : DawLookAndFeel::text);
+        g.setFont(DawLookAndFeel::uiFont(10.0f, !slot.isEmpty()));
+        g.drawText(slot.isEmpty() ? "—" : slot.name, 5, 0, width-10, height, juce::Justification::centredLeft, true);
+    }
+
+    void listBoxItemClicked(int row, const juce::MouseEvent&) override
+    {
+        auto types=model.plugins.getTypes(); juce::PopupMenu menu;
+        for(int i=0;i<types.size();++i) menu.addItem(i+1,types[i].name+" · "+types[i].pluginFormatName);
+        if(types.isEmpty()) menu.addItem(-1,"No plugins available",false);
+        menu.addSeparator(); menu.addItem(1000,"Clear slot");
+        juce::Component::SafePointer<ConsolePanel> safe(this);
+        menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&masterFxList),[safe,row,types](int result){
+            auto* self=safe.getComponent(); if(!self||result<=0||!juce::isPositiveAndBelow(row,(int)self->model.masterEffects.size())) return;
+            auto& slot=self->model.masterEffects[(size_t)row];
+            if(result==1000) slot=EffectSlot{};
+            else if(result-1<types.size()){const auto& d=types[result-1];slot.name=d.name;slot.pluginId=d.createIdentifierString();slot.bypassed=false;}
+            self->model.changed(); self->masterFxList.updateContent();
+        });
     }
 
     void layoutStrips()
