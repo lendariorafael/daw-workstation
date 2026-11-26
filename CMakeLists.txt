@@ -54,6 +54,7 @@ target_sources(Opalo PRIVATE
     Source/UI/Panels/NoteCanvasPanel.h
     Source/UI/Panels/PluginVaultPanel.h
     Source/UI/Panels/BrowserPanel.h
+    Source/UI/Panels/AutomationPanel.h
 )
 
 target_compile_definitions(Opalo PRIVATE
