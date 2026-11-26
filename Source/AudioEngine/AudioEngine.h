@@ -63,6 +63,10 @@ public:
 
     void setGain(float gain)        { transport.setGain(gain); }
 
+    void seek(double seconds)       { transport.setPosition(juce::jlimit(0.0, getLength(), seconds)); }
+
+    juce::AudioFormatManager& getFormatManager() { return formatManager; }
+
 private:
     juce::AudioFormatManager formatManager;
     juce::AudioDeviceManager deviceManager;

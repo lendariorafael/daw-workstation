@@ -3,6 +3,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "../AudioEngine/AudioEngine.h"
 #include "DawLookAndFeel.h"
+#include "WaveformView.h"
 
 class MainComponent : public juce::Component,
                       private juce::Timer
@@ -20,7 +21,7 @@ private:
     void updateControls();
     static juce::String formatTime(double seconds);
 
-    // Ordem importa: o look and feel tem de existir antes dos componentes que o usam.
+    // Ordem importa: o look and feel e o motor existem antes dos componentes que os usam.
     DawLookAndFeel lookAndFeel;
     AudioEngine engine;
 
@@ -30,6 +31,7 @@ private:
     juce::Slider volumeSlider;
     juce::Label fileLabel;
     juce::Label timeLabel;
+    WaveformView waveform { engine.getFormatManager() };
 
     std::unique_ptr<juce::FileChooser> chooser;
 

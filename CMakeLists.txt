@@ -31,6 +31,7 @@ target_sources(DAWWorkstation PRIVATE
     Source/UI/DawLookAndFeel.h
     Source/UI/MainComponent.h
     Source/UI/MainComponent.cpp
+    Source/UI/WaveformView.h
 )
 
 target_compile_definitions(DAWWorkstation PRIVATE

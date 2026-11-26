@@ -21,12 +21,15 @@ MainComponent::MainComponent()
     timeLabel.setText("00:00.00 / 00:00.00", juce::dontSendNotification);
     timeLabel.setJustificationType(juce::Justification::centredRight);
 
+    waveform.onSeek = [this](double seconds) { engine.seek(seconds); };
+
     for (auto* c : { static_cast<juce::Component*>(&openButton),
                      static_cast<juce::Component*>(&playButton),
                      static_cast<juce::Component*>(&stopButton),
                      static_cast<juce::Component*>(&volumeSlider),
                      static_cast<juce::Component*>(&fileLabel),
-                     static_cast<juce::Component*>(&timeLabel) })
+                     static_cast<juce::Component*>(&timeLabel),
+                     static_cast<juce::Component*>(&waveform) })
         addAndMakeVisible(c);
 
     setSize(1200, 680);
@@ -44,7 +47,6 @@ void MainComponent::paint(juce::Graphics& g)
 {
     g.fillAll(DawLookAndFeel::background);
 
-    // Faixa de acento sob a barra de transporte.
     auto bar = getLocalBounds().removeFromTop(64);
     g.setColour(DawLookAndFeel::panel);
     g.fillRect(bar);
@@ -69,12 +71,15 @@ void MainComponent::resized()
     bar.removeFromRight(16);
 
     fileLabel.setBounds(bar);
+
+    waveform.setBounds(getLocalBounds().withTrimmedTop(64).reduced(16));
 }
 
 void MainComponent::timerCallback()
 {
     timeLabel.setText(formatTime(engine.getPosition()) + " / " + formatTime(engine.getLength()),
                       juce::dontSendNotification);
+    waveform.setPlayhead(engine.getPosition(), engine.getLength());
     updateControls();
 }
 
@@ -103,10 +108,16 @@ void MainComponent::openFile()
                                  return;
 
                              if (engine.loadFile(file))
+                             {
                                  fileLabel.setText(file.getFileName(), juce::dontSendNotification);
+                                 waveform.setFile(file);
+                             }
                              else
+                             {
                                  fileLabel.setText("Could not open: " + file.getFileName(),
                                                    juce::dontSendNotification);
+                                 waveform.setFile(juce::File{});
+                             }
 
                              updateControls();
                          });

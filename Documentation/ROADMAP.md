@@ -22,7 +22,7 @@ Estado real de cada fase. Atualizar apenas quando o item estiver verificado.
 - [x] Importar WAV, AIFF, FLAC e OGG (MP3 por fazer).
 - [x] Reproduzir e parar áudio, com volume e tempo.
 - [ ] Criar e remover pistas.
-- [ ] Mostrar formas de onda.
+- [x] Mostrar formas de onda, com cursor de reprodução e clique para saltar de posição.
 - [ ] Guardar e abrir projetos.
 
 ## Milestone 002 — Plugin Hosting
