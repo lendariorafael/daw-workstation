@@ -20,6 +20,8 @@ public:
         setWantsKeyboardFocus(true);
     }
 
+    juce::Component* getContentComponent() const { return content.get(); }
+
     std::function<void(bool)> onVisibilityChanged;
     std::function<void()> onUserBoundsChanged;
 
