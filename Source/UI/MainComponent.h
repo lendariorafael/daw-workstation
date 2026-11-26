@@ -108,7 +108,7 @@ private:
     juce::TextButton browserButton   { "Browser" };
     juce::TextButton timelineButton  { "Playlist" };
     juce::TextButton consoleButton   { "Mixer" };
-    juce::TextButton beatButton      { "Beat Deck" };
+    juce::TextButton beatButton      { "Patterns" };
     juce::TextButton noteButton      { "Note Canvas" };
     juce::TextButton vaultButton     { "Plugin Vault" };
     juce::TextButton mashupButton    { "Mashup" };
