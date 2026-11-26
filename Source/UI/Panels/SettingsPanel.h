@@ -42,8 +42,15 @@ public:
         layoutBox.addItem("Arrangement Focus", 2);
         layoutBox.addItem("Mix Focus", 3);
         layoutBox.addItem("DJ Mashup", 4);
-        layoutBox.setSelectedId(1, juce::dontSendNotification);
-        layoutBox.onChange = [this] { if (onLayout) onLayout(layoutBox.getSelectedId() - 1); };
+        layoutBox.setSelectedId((int) OpaloSettings::get().getIntValue("layoutPreset", 0) + 1,
+                                juce::dontSendNotification);
+        layoutBox.onChange = [this]
+        {
+            const int preset = layoutBox.getSelectedId() - 1;
+            OpaloSettings::get().setValue("layoutPreset", preset);
+            OpaloSettings::get().save();
+            if (onLayout) onLayout(preset);
+        };
 
         for (int i = 0; i < 5; ++i)
             bufferBox.addItem(juce::String(bufferSizes[i]), i + 1);
