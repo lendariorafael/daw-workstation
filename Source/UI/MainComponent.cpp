@@ -767,73 +767,92 @@ void MainComponent::updateControls()
     playButton.setEnabled(hasFile && ! playing);
     stopButton.setEnabled(hasFile);
     playButton.setToggleState(playing, juce::dontSendNotification);
+    bpmLabel.setText(juce::String(model.bpm, 1) + " BPM", juce::dontSendNotification);
 }
 
 // ----- Desenho e layout ----------------------------------------------------------
 
 void MainComponent::paint(juce::Graphics& g)
 {
-    g.fillAll(DawLookAndFeel::background);
-
-    auto topBar = getLocalBounds().removeFromTop(64);
-    g.setColour(DawLookAndFeel::panel);
-    g.fillRect(topBar);
-    g.setColour(DawLookAndFeel::accent.withAlpha(0.35f));
-    g.fillRect(topBar.removeFromBottom(1));
-
-    auto panelBar = getLocalBounds().withTrimmedTop(64).removeFromTop(44);
-    g.setColour(DawLookAndFeel::panel.darker(0.15f));
-    g.fillRect(panelBar);
+    g.fillAll(OpaloDesign::background);
+    auto menuBar = getLocalBounds().removeFromTop(34);
+    g.setColour(OpaloDesign::surface0);
+    g.fillRect(menuBar);
+    auto transport = getLocalBounds().withTrimmedTop(34).removeFromTop(52);
+    g.setColour(OpaloDesign::surface1);
+    g.fillRect(transport);
+    auto shortcuts = getLocalBounds().withTrimmedTop(86).removeFromTop(46);
+    g.setColour(OpaloDesign::surface0);
+    g.fillRect(shortcuts);
+    g.setColour(OpaloDesign::accent.withAlpha(0.48f));
+    g.fillRect(0, 132, getWidth(), 1);
 }
 
 void MainComponent::resized()
 {
-    auto bar = getLocalBounds().removeFromTop(64).reduced(16, 12);
+    auto menu = getLocalBounds().removeFromTop(34).reduced(10, 2);
+    topLogo.setBounds(menu.removeFromLeft(122));
+    menu.removeFromLeft(14);
+    fileMenuButton.setBounds(menu.removeFromLeft(58));
+    editMenuButton.setBounds(menu.removeFromLeft(58));
+    viewMenuButton.setBounds(menu.removeFromLeft(58));
+    toolsMenuButton.setBounds(menu.removeFromLeft(62));
+    helpMenuButton.setBounds(menu.removeFromLeft(58));
 
-    topLogo.setBounds(bar.removeFromLeft(200));
-    bar.removeFromLeft(12);
-    loadAudioButton.setBounds(bar.removeFromLeft(104));
-    bar.removeFromLeft(8);
-    playButton.setBounds(bar.removeFromLeft(72));
-    bar.removeFromLeft(8);
-    stopButton.setBounds(bar.removeFromLeft(72));
-    bar.removeFromLeft(16);
+    auto transport = getLocalBounds().withTrimmedTop(34).removeFromTop(52).reduced(10, 7);
+    newButton.setBounds(transport.removeFromLeft(58));
+    transport.removeFromLeft(5);
+    openButton.setBounds(transport.removeFromLeft(58));
+    transport.removeFromLeft(5);
+    saveButton.setBounds(transport.removeFromLeft(58));
+    transport.removeFromLeft(5);
+    saveAsButton.setBounds(transport.removeFromLeft(70));
+    transport.removeFromLeft(10);
+    loadAudioButton.setBounds(transport.removeFromLeft(94));
+    transport.removeFromLeft(8);
+    playButton.setBounds(transport.removeFromLeft(38));
+    transport.removeFromLeft(4);
+    stopButton.setBounds(transport.removeFromLeft(38));
+    transport.removeFromLeft(4);
+    recordButton.setBounds(transport.removeFromLeft(58));
+    transport.removeFromLeft(10);
+    bpmLabel.setBounds(transport.removeFromLeft(86));
+    transport.removeFromLeft(10);
+    timeLabel.setBounds(transport.removeFromRight(150));
+    transport.removeFromRight(10);
+    volumeSlider.setBounds(transport.removeFromRight(150));
+    transport.removeFromRight(12);
+    fileLabel.setBounds(transport);
 
-    timeLabel.setBounds(bar.removeFromRight(190));
-    bar.removeFromRight(16);
-    settingsButton.setBounds(bar.removeFromRight(96));
-    bar.removeFromRight(16);
-    volumeSlider.setBounds(bar.removeFromRight(220));
-    bar.removeFromRight(16);
+    auto shortcuts = getLocalBounds().withTrimmedTop(86).removeFromTop(46).reduced(10, 6);
+    browserButton.setBounds(shortcuts.removeFromLeft(104));
+    timelineButton.setBounds(shortcuts.removeFromLeft(112));
+    beatButton.setBounds(shortcuts.removeFromLeft(132));
+    consoleButton.setBounds(shortcuts.removeFromLeft(94));
+    noteButton.setBounds(shortcuts.removeFromLeft(116));
+    vaultButton.setBounds(shortcuts.removeFromLeft(100));
+    mashupButton.setBounds(shortcuts.removeFromLeft(102));
+    settingsButton.setBounds(shortcuts.removeFromRight(108));
 
-    fileLabel.setBounds(bar);
+    waveform.setBounds(0, 0, 0, 0);
 
-    auto panelBar = getLocalBounds().withTrimmedTop(64).removeFromTop(44).reduced(16, 8);
-
-    auto fileButtons = panelBar.removeFromRight(4 * 92 + 3 * 8);
-    newButton.setBounds(fileButtons.removeFromLeft(92));
-    fileButtons.removeFromLeft(8);
-    openButton.setBounds(fileButtons.removeFromLeft(92));
-    fileButtons.removeFromLeft(8);
-    saveButton.setBounds(fileButtons.removeFromLeft(92));
-    fileButtons.removeFromLeft(8);
-    saveAsButton.setBounds(fileButtons);
-
-    browserButton.setBounds(panelBar.removeFromLeft(88));
-    panelBar.removeFromLeft(8);
-    timelineButton.setBounds(panelBar.removeFromLeft(88));
-    panelBar.removeFromLeft(8);
-    consoleButton.setBounds(panelBar.removeFromLeft(88));
-    panelBar.removeFromLeft(8);
-    beatButton.setBounds(panelBar.removeFromLeft(96));
-    panelBar.removeFromLeft(8);
-    noteButton.setBounds(panelBar.removeFromLeft(104));
-    panelBar.removeFromLeft(8);
-    vaultButton.setBounds(panelBar.removeFromLeft(104));
-    panelBar.removeFromLeft(8);
-    mashupButton.setBounds(panelBar.removeFromLeft(88));
-
-    waveform.setBounds(getLocalBounds().withTrimmedTop(108).reduced(16));
+    if (! layoutInitialized)
+        applyLayoutPreset(0);
+    else
+    {
+        const auto workspace = getLocalBounds().withTrimmedTop(132).reduced(4);
+        for (auto* panel : { browserWindow.get(), timelineWindow.get(), consoleWindow.get(),
+                             beatWindow.get(), noteWindow.get(), vaultWindow.get(),
+                             mashupWindow.get(), settingsWindow.get() })
+        {
+            auto bounds = panel->getBounds();
+            bounds.setWidth(juce::jlimit(280, workspace.getWidth(), bounds.getWidth()));
+            bounds.setHeight(juce::jlimit(150, workspace.getHeight(), bounds.getHeight()));
+            bounds.setX(juce::jlimit(workspace.getX(), workspace.getRight() - bounds.getWidth(), bounds.getX()));
+            bounds.setY(juce::jlimit(workspace.getY(), workspace.getBottom() - bounds.getHeight(), bounds.getY()));
+            panel->setBounds(bounds);
+        }
+    }
 
     if (splash != nullptr)
         splash->setBounds(getLocalBounds());
