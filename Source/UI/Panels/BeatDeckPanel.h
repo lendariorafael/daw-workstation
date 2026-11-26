@@ -18,7 +18,8 @@ public:
         addButton.onClick = [this]
         {
             const int n = (int) model.channels.size() + 1;
-            model.addChannel("Channel " + juce::String(n), ProjectModel::paletteColour(n - 1));
+            if (n <= ProjectModel::maxChannels)
+                model.addChannel("Track " + juce::String(n), ProjectModel::paletteColour(n - 1));
         };
     }
 
@@ -59,17 +60,28 @@ public:
             drawToggle(g, muteRect(i), "M", ch.muted, ch.colour);
             drawToggle(g, soloRect(i), "S", ch.soloed, ch.colour);
 
+            for (int group = 0; group < 4; ++group)
+            {
+                const int firstStep = group * 4;
+                const int x = stepRect(i, firstStep).getX();
+                const int right = stepRect(i, firstStep + 3).getRight();
+                g.setColour((group % 2 == 0) ? DawLookAndFeel::panelLight.withAlpha(0.42f)
+                                             : DawLookAndFeel::background.withAlpha(0.32f));
+                g.fillRoundedRectangle(juce::Rectangle<float>((float) x - 2.0f, (float) row.getY() + 5.0f,
+                                                               (float) (right - x) + 4.0f, (float) row.getHeight() - 10.0f), 4.0f);
+            }
+
             for (int s = 0; s < ProjectModel::numSteps; ++s)
             {
                 const auto cell = stepRect(i, s).toFloat();
                 const bool on = ch.steps[(size_t) s];
-                const bool beat = (s % 4) == 0;
+                const bool beat = ((s / 4) % 2) == 0;
 
                 if (on)
                     g.setColour(ch.colour);
                 else
                     g.setColour(beat ? DawLookAndFeel::panelLight.brighter(0.10f)
-                                     : DawLookAndFeel::panel.brighter(0.04f));
+                                     : DawLookAndFeel::background.brighter(0.10f));
 
                 g.fillRoundedRectangle(cell, 4.0f);
             }
