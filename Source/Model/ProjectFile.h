@@ -180,7 +180,7 @@ namespace OpaloFile
             error = "Could not write the project file.";
             return false;
         }
-        if (! temp.replaceFileIn(file) && ! temp.moveFileTo(file))
+        if (! temp.moveFileTo(file))
         {
             error = "Could not replace the project file.";
             return false;
