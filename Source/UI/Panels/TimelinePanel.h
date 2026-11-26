@@ -222,13 +222,14 @@ public:
 private:
     void mouseDrag(const juce::MouseEvent& e) override
     {
-        if (tool != Tool::Brush || e.y < rulerHeight || e.x < nameWidth)
+        const auto position = e.getPosition();
+        if (tool != Tool::Brush || position.y < rulerHeight || position.x < nameWidth)
             return;
 
-        const int row = (e.y - rulerHeight + scrollY) / rowHeight;
+        const int row = (position.y - rulerHeight + scrollY) / rowHeight;
         if (row < 0 || row >= (int) model.channels.size())
             return;
-        const int bar = juce::jlimit(0, totalBars - 1, (int) ((e.x - nameWidth) / barWidth()));
+        const int bar = juce::jlimit(0, totalBars - 1, (int) ((position.x - nameWidth) / barWidth()));
         if (row != lastPaintRow || bar != lastPaintBar)
         {
             addClipAt(row, bar);
