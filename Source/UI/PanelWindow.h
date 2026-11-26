@@ -82,11 +82,23 @@ public:
     void mouseDrag(const juce::MouseEvent& e) override
     {
         const auto delta = e.getScreenPosition() - dragOrigin;
-        if (resizing)
-            setSize(juce::jmax(280, originalBounds.getWidth() + delta.x),
-                    juce::jmax(150, originalBounds.getHeight() + delta.y));
-        else if (dragging)
-            setTopLeftPosition(originalBounds.getX() + delta.x, originalBounds.getY() + delta.y);
+        if (auto* parent = getParentComponent())
+        {
+            const auto parentBounds = parent->getLocalBounds();
+            if (resizing)
+                setSize(juce::jlimit(280, juce::jmax(280, parentBounds.getWidth() - getX()),
+                                     originalBounds.getWidth() + delta.x),
+                        juce::jlimit(150, juce::jmax(150, parentBounds.getBottom() - getY()),
+                                     originalBounds.getHeight() + delta.y));
+            else if (dragging)
+            {
+                const int newX = juce::jlimit(0, juce::jmax(0, parentBounds.getWidth() - getWidth()),
+                                              originalBounds.getX() + delta.x);
+                const int newY = juce::jlimit(132, juce::jmax(132, parentBounds.getBottom() - getHeight()),
+                                              originalBounds.getY() + delta.y);
+                setTopLeftPosition(newX, newY);
+            }
+        }
 
         if (dragging || resizing)
             if (onUserBoundsChanged) onUserBoundsChanged();
