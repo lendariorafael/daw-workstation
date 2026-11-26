@@ -94,8 +94,6 @@ MainComponent::MainComponent()
              static_cast<juce::Component*>(&settingsButton) })
         addAndMakeVisible(component);
 
-    setSize(1440, 900);
-
     browserWindow  = std::make_unique<PanelWindow>(I18n::t("view.browser"), new BrowserPanel(model), 230, 620);
     timelineWindow = std::make_unique<PanelWindow>(I18n::t("view.playlist"), new TimelinePanel(model), 900, 330);
     consoleWindow  = std::make_unique<PanelWindow>(I18n::t("view.mixer"), new ConsolePanel(model), 900, 230);
@@ -113,6 +111,8 @@ MainComponent::MainComponent()
                          beatWindow.get(), noteWindow.get(), vaultWindow.get(),
                          mashupWindow.get(), settingsWindow.get() })
         addAndMakeVisible(panel);
+
+    setSize(1440, 900);
 
     bindPanel(browserButton, *browserWindow);
     bindPanel(timelineButton, *timelineWindow);
