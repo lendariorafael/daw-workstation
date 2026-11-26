@@ -208,7 +208,7 @@ public:
             menu.addItem(100, "Open in note editor");
             juce::Component::SafePointer<TimelinePanel> safe(this);
             menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(this),
-                [safe, row, palette](int result)
+                [safe, row](int result)
                 {
                     auto* self = safe.getComponent();
                     if (self == nullptr) return;
