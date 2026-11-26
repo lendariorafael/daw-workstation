@@ -71,6 +71,8 @@ public:
         const bool on = b.getToggleState();
 
         juce::Colour fill = on ? OpaloDesign::accentDim : OpaloDesign::surface1;
+        if (b.getButtonText().contains("REC"))
+            fill = OpaloDesign::danger.withAlpha(0.88f);
         if (isButtonDown)       fill = fill.darker(0.18f);
         else if (isMouseOver)   fill = fill.brighter(0.10f);
         if (! b.isEnabled())    fill = fill.withAlpha(0.40f);
