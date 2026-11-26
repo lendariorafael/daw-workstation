@@ -33,8 +33,8 @@ public:
 
         g.setColour(DawLookAndFeel::muted);
         g.setFont(DawLookAndFeel::uiFont(11.0f, true));
-        g.drawText("CHANNEL", 16, 0, nameWidth, headerHeight, juce::Justification::centredLeft, false);
-        g.drawText("STEPS", nameWidth + 12, 0, 200, headerHeight, juce::Justification::centredLeft, false);
+        g.drawText("TRACK", 16, 0, nameWidth, headerHeight, juce::Justification::centredLeft, false);
+        g.drawText("PATTERN STEPS", nameWidth + 12, 0, 200, headerHeight, juce::Justification::centredLeft, false);
 
         const int channels = (int) model.channels.size();
         const int first = juce::jlimit(0, channels, (scrollY / rowHeight));
@@ -179,5 +179,5 @@ private:
 
     ProjectModel& model;
     int scrollY = 0;
-    juce::TextButton addButton { "+ Channel" };
+    juce::TextButton addButton { "+ Track" };
 };
