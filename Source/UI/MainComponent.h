@@ -5,9 +5,7 @@
 #include "../Model/ProjectModel.h"
 #include "../Model/ProjectHistory.h"
 #include "DawLookAndFeel.h"
-#include "OpaloLogo.h"
 #include "PanelWindow.h"
-#include "SplashScreen.h"
 #include "WaveformView.h"
 #include "Panels/BeatDeckPanel.h"
 #include "Panels/BrowserPanel.h"
@@ -88,7 +86,6 @@ private:
     int changeTicks = 0;
     int autosaveTicks = 0;
 
-    OpaloLogo topLogo;
     juce::TextButton loadAudioButton { "Load audio" };
     juce::TextButton startButton { "Start" };
     juce::TextButton playButton  { "Play" };
@@ -121,7 +118,6 @@ private:
 
     std::unique_ptr<juce::FileChooser> audioChooser;
     std::unique_ptr<juce::FileChooser> projectChooser;
-    std::unique_ptr<SplashScreen> splash;
     bool layoutInitialized = false;
     bool recordNoticeShown = false;
 
