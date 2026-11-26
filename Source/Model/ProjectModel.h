@@ -78,6 +78,8 @@ public:
         channels.clear();
         clips.clear();
         patterns.clear();
+        automationLanes.clear();
+        masterEffects.assign(ChannelData::kMaxEffects, EffectSlot{});
         selectedChannel = 0;
         selectedPattern = 0;
         bpm = 120.0;
