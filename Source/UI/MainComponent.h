@@ -66,6 +66,8 @@ private:
     void updateTitle();
     void updateControls();
     void bindPanel(juce::TextButton& button, PanelWindow& window);
+    void showMenu(const juce::String& menuName);
+    void applyLayoutPreset(int preset);
     static juce::File projectsFolder();
     static juce::File appDataFolder();
     static juce::File autosaveFile();
@@ -90,6 +92,13 @@ private:
     juce::TextButton loadAudioButton { "Load audio" };
     juce::TextButton playButton  { "Play" };
     juce::TextButton stopButton  { "Stop" };
+    juce::TextButton recordButton { "REC" };
+    juce::Label bpmLabel;
+    juce::TextButton fileMenuButton { "File" };
+    juce::TextButton editMenuButton { "Edit" };
+    juce::TextButton viewMenuButton { "View" };
+    juce::TextButton toolsMenuButton { "Tools" };
+    juce::TextButton helpMenuButton { "Help" };
     juce::Slider volumeSlider;
     juce::Label fileLabel;
     juce::Label timeLabel;
@@ -112,6 +121,8 @@ private:
     std::unique_ptr<juce::FileChooser> audioChooser;
     std::unique_ptr<juce::FileChooser> projectChooser;
     std::unique_ptr<SplashScreen> splash;
+    bool layoutInitialized = false;
+    bool recordNoticeShown = false;
 
     // Janelas por último: são destruídas antes do modelo.
     std::unique_ptr<PanelWindow> browserWindow;
