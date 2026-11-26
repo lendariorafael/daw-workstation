@@ -232,7 +232,8 @@ private:
     juce::TextButton solo;
     juce::ListBox fxList;
     juce::Slider fader;
-    juce::Slider pan;\n    juce::TextButton monoButton;
+    juce::Slider pan;
+    juce::TextButton monoButton;
 };
 
 // Console: mixer com scroll horizontal. Só existem tiras suficientes para o que está no ecrã
