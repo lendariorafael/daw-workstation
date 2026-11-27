@@ -75,7 +75,11 @@ public:
             return;
         }
 
-        resizing = p.x >= getWidth() - resizeGrip && p.y >= getHeight() - resizeGrip;
+        resizeLeft = p.x <= resizeGrip;
+        resizeRight = p.x >= getWidth() - resizeGrip;
+        resizeTop = p.y <= resizeGrip;
+        resizeBottom = p.y >= getHeight() - resizeGrip;
+        resizing = resizeLeft || resizeRight || resizeTop || resizeBottom;
         dragging = !resizing && p.y < titleHeight;
         dragOrigin = e.getScreenPosition();
         originalBounds = getBounds();
@@ -88,15 +92,34 @@ public:
         {
             const auto parentBounds = parent->getLocalBounds();
             if (resizing)
-                setSize(juce::jlimit(280, juce::jmax(280, parentBounds.getWidth() - getX()),
-                                     originalBounds.getWidth() + delta.x),
-                        juce::jlimit(150, juce::jmax(150, parentBounds.getBottom() - getY()),
-                                     originalBounds.getHeight() + delta.y));
+            {
+                constexpr int minWidth = 180;
+                constexpr int minHeight = 150;
+                int left = originalBounds.getX();
+                int top = originalBounds.getY();
+                int right = originalBounds.getRight();
+                int bottom = originalBounds.getBottom();
+
+                if (resizeLeft)
+                    left = juce::jlimit(parentBounds.getX(), right - minWidth,
+                                        originalBounds.getX() + delta.x);
+                if (resizeRight)
+                    right = juce::jlimit(left + minWidth, parentBounds.getRight(),
+                                         originalBounds.getRight() + delta.x);
+                if (resizeTop)
+                    top = juce::jlimit(108, bottom - minHeight,
+                                       originalBounds.getY() + delta.y);
+                if (resizeBottom)
+                    bottom = juce::jlimit(top + minHeight, parentBounds.getBottom(),
+                                          originalBounds.getBottom() + delta.y);
+
+                setBounds(left, top, right - left, bottom - top);
+            }
             else if (dragging)
             {
                 const int newX = juce::jlimit(0, juce::jmax(0, parentBounds.getWidth() - getWidth()),
                                               originalBounds.getX() + delta.x);
-                const int newY = juce::jlimit(80, juce::jmax(80, parentBounds.getBottom() - getHeight()),
+                const int newY = juce::jlimit(108, juce::jmax(108, parentBounds.getBottom() - getHeight()),
                                               originalBounds.getY() + delta.y);
                 setTopLeftPosition(newX, newY);
             }
@@ -108,7 +131,7 @@ public:
 
     void mouseUp(const juce::MouseEvent&) override
     {
-        dragging = resizing = false;
+        dragging = resizing = false;\n        resizeLeft = resizeRight = resizeTop = resizeBottom = false;
     }
 
     void visibilityChanged() override
@@ -131,4 +154,8 @@ private:
     juce::Rectangle<int> originalBounds;
     bool dragging = false;
     bool resizing = false;
+    bool resizeLeft = false;
+    bool resizeRight = false;
+    bool resizeTop = false;
+    bool resizeBottom = false;
 };
