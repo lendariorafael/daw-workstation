@@ -352,25 +352,46 @@ void MainComponent::applyLayoutPreset(int preset)
                          mashupWindow.get(), settingsWindow.get(), automationWindow.get() })
         panel->setVisible(false);
 
-    if (preset == 0) // Layout de referência: Playlist superior, Mixer inferior e Browser flutuante
+    if (preset == 0) // Studio padrão: Browser à esquerda, Playlist ao centro e Beat Editor em baixo.
     {
-        const int playlistHeight = juce::jlimit(300, juce::jmax(300, workH - 220), workH * 58 / 100);
-        const int mixerY = area.getY() + playlistHeight + gap;
-        const int mixerHeight = juce::jmax(190, area.getBottom() - mixerY);
-        timelineWindow->setBounds(area.getX(), area.getY(), area.getWidth(), playlistHeight);
-        consoleWindow->setBounds(area.getX(), mixerY, area.getWidth(), mixerHeight);
-        const int browserW = juce::jlimit(210, 270, area.getWidth() / 5);
-        const int browserH = juce::jmax(220, playlistHeight - 36);
-        browserWindow->setBounds(area.getRight() - browserW - 14, area.getY() + 18, browserW, browserH);
-        beatWindow->setBounds(area.getX() + 120, area.getY() + 70,
-                              juce::jmin(area.getWidth() - 240, 980), juce::jmin(workH - 120, 300));
-        noteWindow->setBounds(area.getX() + 100, area.getY() + 50,
-                              juce::jmin(area.getWidth() - 200, 1100), juce::jmin(workH - 100, 560));
+        const int dockBrowserWidth = juce::jlimit(220, 280, area.getWidth() / 7);
+        const int workspaceX = area.getX() + dockBrowserWidth + gap;
+        const int workspaceWidth = juce::jmax(280, area.getRight() - workspaceX);
+        const int playlistHeight = juce::jlimit(300, juce::jmax(300, workH - 210), workH * 56 / 100);
+        const int beatY = area.getY() + playlistHeight + gap;
+        const int beatHeight = juce::jmax(170, area.getBottom() - beatY);
+
+        browserWindow->setBounds(area.getX(), area.getY(), dockBrowserWidth, workH);
+        timelineWindow->setBounds(workspaceX, area.getY(), workspaceWidth, playlistHeight);
+        beatWindow->setBounds(workspaceX, beatY, workspaceWidth, beatHeight);
+
+        // O Mixer e as restantes ferramentas ficam disponíveis pelos ícones,
+        // mas não ocupam o espaço de trabalho ao iniciar.
+        consoleWindow->setBounds(workspaceX + 24, area.getY() + 24,
+                                 juce::jmin(workspaceWidth - 48, 1100),
+                                 juce::jmin(workH - 48, 420));
+        noteWindow->setBounds(workspaceX + 24, area.getY() + 24,
+                              juce::jmin(workspaceWidth - 48, 1100),
+                              juce::jmin(workH - 48, 560));
+        vaultWindow->setBounds(workspaceX + 36, area.getY() + 36,
+                               juce::jmin(workspaceWidth - 72, 620),
+                               juce::jmin(workH - 72, 500));
+        mashupWindow->setBounds(workspaceX + 24, area.getY() + 24,
+                                juce::jmin(workspaceWidth - 48, 1100),
+                                juce::jmin(workH - 48, 560));
+        automationWindow->setBounds(workspaceX + 40, area.getY() + 40,
+                                    juce::jmin(workspaceWidth - 80, 760),
+                                    juce::jmin(workH - 80, 420));
+
         browserWindow->setVisible(true);
         timelineWindow->setVisible(true);
-        beatWindow->setVisible(false);
+        beatWindow->setVisible(true);
+        consoleWindow->setVisible(false);
         noteWindow->setVisible(false);
-        consoleWindow->setVisible(true);
+        vaultWindow->setVisible(false);
+        mashupWindow->setVisible(false);
+        settingsWindow->setVisible(false);
+        automationWindow->setVisible(false);
     }
     else if (preset == 1) // Arrangement Focus
     {
