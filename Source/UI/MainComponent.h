@@ -6,6 +6,7 @@
 #include "../Model/ProjectModel.h"
 #include "../Model/ProjectHistory.h"
 #include "DawLookAndFeel.h"
+#include "OpaloLogo.h"
 #include "PanelWindow.h"
 #include "WaveformView.h"
 #include "Panels/BeatDeckPanel.h"
@@ -130,6 +131,7 @@ private:
     int changeTicks = 0;
     int autosaveTicks = 0;
 
+    OpaloLogo logo;
     juce::TextButton loadAudioButton { "Load audio" };
     juce::TextButton startButton { "Start" };
     juce::TextButton playButton  { "Play" };
