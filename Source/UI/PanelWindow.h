@@ -131,7 +131,8 @@ public:
 
     void mouseUp(const juce::MouseEvent&) override
     {
-        dragging = resizing = false;\n        resizeLeft = resizeRight = resizeTop = resizeBottom = false;
+        dragging = resizing = false;
+        resizeLeft = resizeRight = resizeTop = resizeBottom = false;
     }
 
     void visibilityChanged() override
