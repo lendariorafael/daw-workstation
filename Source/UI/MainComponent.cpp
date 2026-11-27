@@ -65,6 +65,7 @@ MainComponent::MainComponent()
     waveform.onSeek = [this](double seconds) { engine.seek(seconds); };
 
     for (auto* component : {
+             static_cast<juce::Component*>(&logo),
              static_cast<juce::Component*>(&fileMenuButton),
              static_cast<juce::Component*>(&editMenuButton),
              static_cast<juce::Component*>(&viewMenuButton),
@@ -330,7 +331,7 @@ void MainComponent::showMenu(const juce::String& menuName)
 void MainComponent::applyLayoutPreset(int preset)
 {
     preset = juce::jlimit(0, 3, preset);
-    const auto area = getLocalBounds().withTrimmedTop(80).reduced(8);
+    const auto area = getLocalBounds().withTrimmedTop(108).reduced(8);
     const int gap = 8;
     const int browserW = juce::jlimit(190, 280, area.getWidth() / 6);
     const int workX = area.getX() + browserW + gap;
@@ -806,32 +807,34 @@ void MainComponent::updateControls()
 void MainComponent::paint(juce::Graphics& g)
 {
     g.fillAll(OpaloDesign::background);
-    auto menuBar = getLocalBounds().removeFromTop(22);
+    auto menuBar = getLocalBounds().removeFromTop(36);
     g.setColour(OpaloDesign::surface0);
     g.fillRect(menuBar);
-    auto transport = getLocalBounds().withTrimmedTop(22).removeFromTop(30);
+    auto transport = getLocalBounds().withTrimmedTop(36).removeFromTop(36);
     g.setColour(OpaloDesign::surface1);
     g.fillRect(transport);
-    auto shortcuts = getLocalBounds().withTrimmedTop(52).removeFromTop(28);
+    auto shortcuts = getLocalBounds().withTrimmedTop(72).removeFromTop(36);
     g.setColour(OpaloDesign::surface0);
     g.fillRect(shortcuts);
     auto waveformFooter = juce::Rectangle<int>();
     g.setColour(OpaloDesign::surface1);
     g.fillRect(waveformFooter);
     g.setColour(OpaloDesign::accent.withAlpha(0.48f));
-    g.fillRect(0, 80, getWidth(), 1);
+    g.fillRect(0, 108, getWidth(), 1);
 }
 
 void MainComponent::resized()
 {
-    auto menu = getLocalBounds().removeFromTop(22).reduced(10, 1);
+    auto menu = getLocalBounds().removeFromTop(36).reduced(12, 3);
+    logo.setBounds(menu.removeFromLeft(150).withSizeKeepingCentre(142, 29));
+    menu.removeFromLeft(12);
     fileMenuButton.setBounds(menu.removeFromLeft(58));
     editMenuButton.setBounds(menu.removeFromLeft(58));
-    viewMenuButton.setBounds(menu.removeFromLeft(58));
+    viewMenuButton.setBounds(menu.removeFromLeft(62));
     toolsMenuButton.setBounds(menu.removeFromLeft(62));
     helpMenuButton.setBounds(menu.removeFromLeft(58));
 
-    auto transport = getLocalBounds().withTrimmedTop(22).removeFromTop(30).reduced(10, 2);
+    auto transport = getLocalBounds().withTrimmedTop(36).removeFromTop(36).reduced(10, 2);
     newButton.setBounds(transport.removeFromLeft(58));
     transport.removeFromLeft(5);
     openButton.setBounds(transport.removeFromLeft(58));
@@ -858,7 +861,7 @@ void MainComponent::resized()
     transport.removeFromRight(12);
     fileLabel.setBounds(transport);
 
-    auto shortcuts = getLocalBounds().withTrimmedTop(52).removeFromTop(28).reduced(10, 2);
+    auto shortcuts = getLocalBounds().withTrimmedTop(72).removeFromTop(36).reduced(10, 3);
     browserButton.setBounds(shortcuts.removeFromLeft(38));
     timelineButton.setBounds(shortcuts.removeFromLeft(38));
     beatButton.setBounds(shortcuts.removeFromLeft(38));
@@ -883,10 +886,10 @@ void MainComponent::resized()
         applyLayoutPreset(0);
     else
     {
-        const auto workspace = getLocalBounds().withTrimmedTop(80).reduced(4);
+        const auto workspace = getLocalBounds().withTrimmedTop(108).reduced(4);
         for (auto* panel : { browserWindow.get(), timelineWindow.get(), consoleWindow.get(),
                              beatWindow.get(), noteWindow.get(), vaultWindow.get(),
-                             mashupWindow.get(), settingsWindow.get() })
+                             mashupWindow.get(), settingsWindow.get(), automationWindow.get() })
         {
             auto bounds = panel->getBounds();
             bounds.setWidth(juce::jlimit(280, workspace.getWidth(), bounds.getWidth()));
