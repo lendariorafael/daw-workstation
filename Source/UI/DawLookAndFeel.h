@@ -21,6 +21,14 @@ public:
         return juce::Font(juce::FontOptions().withHeight(height).withStyle(bold ? "Bold" : "Regular"));
     }
 
+    // Largura, em pixels, de um texto com uma fonte (a API do JUCE 8 não tem getStringWidth).
+    static float textWidth(const juce::Font& font, const juce::String& text)
+    {
+        juce::GlyphArrangement glyphs;
+        glyphs.addLineOfText(font, text, 0.0f, 0.0f);
+        return glyphs.getBoundingBox(0, -1, true).getWidth();
+    }
+
     DawLookAndFeel()
     {
         setColour(juce::ResizableWindow::backgroundColourId, OpaloDesign::background);

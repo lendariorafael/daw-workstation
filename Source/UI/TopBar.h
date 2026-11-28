@@ -213,7 +213,7 @@ public:
 
         for (auto& m : menus)
         {
-            const int w = juce::jmax(56, DawLookAndFeel::uiFont(OpaloDesign::fontBody).getStringWidth(m->getButtonText()) + 24);
+            const int w = juce::jmax(56, (int) DawLookAndFeel::textWidth(DawLookAndFeel::uiFont(OpaloDesign::fontBody), m->getButtonText()) + 24);
             m->setBounds(top.removeFromLeft(w));
         }
 
