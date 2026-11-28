@@ -15,7 +15,7 @@ MainComponent::MainComponent()
 
     juce::LookAndFeel::setDefaultLookAndFeel(&lookAndFeel);
     setWantsKeyboardFocus(true);
-    setSize(1440, 860);
+    setSize(1200, 760);
 
     topBar.onMenu = [this](const juce::String& key) { showMenu(key); };
     topBar.onPlay = [this] { engine.play(); };
@@ -558,7 +558,8 @@ void MainComponent::resized()
 
     topBar.setBounds(area.removeFromTop(topBarHeight));
     taskBar.setBounds(area.removeFromBottom(TaskBar::height));
-    sidebar.setBounds(area.removeFromLeft(sidebarWidth));
+    const int adaptiveSidebarWidth = juce::jlimit(180, sidebarWidth, getWidth() / 5);
+    sidebar.setBounds(area.removeFromLeft(adaptiveSidebarWidth));
     playlist.setBounds(area);
 
     if (splash != nullptr)
