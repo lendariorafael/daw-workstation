@@ -4,159 +4,80 @@ namespace
 {
     constexpr int maxRecent = 8;
     constexpr int historyDelayTicks = 6;     // ~200 ms de pausa antes de registar uma alteração
-    constexpr int autosaveIntervalTicks = 30 * 60 * 5;
+    constexpr int autosaveIntervalTicks = 30 * 60;
+    constexpr int topBarHeight = TopBar::height;
+    constexpr int sidebarWidth = 280;
 }
 
 MainComponent::MainComponent()
 {
     I18n::current() = I18n::fromCode(OpaloSettings::get().getValue("language", "pt"));
+
     juce::LookAndFeel::setDefaultLookAndFeel(&lookAndFeel);
     setWantsKeyboardFocus(true);
+    setSize(1440, 860);
 
-    loadAudioButton.onClick = [this] { loadAudio(); };
-    startButton.onClick = [this] { engine.seek(0.0); engine.play(); };
-    playButton.onClick = [this] { engine.play(); };
-    stopButton.onClick = [this] { engine.stop(); };
-    recordButton.setTooltip(I18n::t("status.recordUnavailable"));
-    recordButton.setEnabled(false);
-    recordButton.onClick = [this]
-    {
-        fileLabel.setText("Recording input will be added with the audio capture engine.",
-                          juce::dontSendNotification);
-    };
+    topBar.onMenu = [this](const juce::String& key) { showMenu(key); };
+    topBar.onPlay = [this] { engine.play(); };
+    topBar.onPause = [this] { engine.pause(); };
+    topBar.onStop = [this] { engine.stop(); };
+    topBar.onPrevious = [this] { engine.seek(0.0); };
+    topBar.onNext = [this] { engine.seek(engine.getLength()); };
+    topBar.onLoop = [this](bool on) { engine.setLooping(on); };
+    topBar.onBpm = [this](double bpm) { model.bpm = bpm; model.changed(); };
 
-    bpmLabel.setText(juce::String(model.bpm, 1) + " BPM", juce::dontSendNotification);
-    bpmLabel.setEditable(true, true, false);
-    bpmLabel.setJustificationType(juce::Justification::centred);
-    bpmLabel.setTooltip("Double-click to edit the project tempo.");
-    bpmLabel.onTextChange = [this]
-    {
-        const double bpm = bpmLabel.getText().upToFirstOccurrenceOf(" ", false, false).getDoubleValue();
-        if (bpm >= 20.0 && bpm <= 300.0)
-        {
-            model.bpm = bpm;
-            model.changed();
-        }
-        bpmLabel.setText(juce::String(model.bpm, 1) + " BPM", juce::dontSendNotification);
-    };
+    addAndMakeVisible(topBar);
+    addAndMakeVisible(taskBar);
+    addAndMakeVisible(sidebar);
+    addAndMakeVisible(playlist);
 
-    fileMenuButton.onClick = [this] { showMenu("File"); };
-    editMenuButton.onClick = [this] { showMenu("Edit"); };
-    viewMenuButton.onClick = [this] { showMenu("View"); };
-    toolsMenuButton.onClick = [this] { showMenu("Tools"); };
-    helpMenuButton.onClick = [this] { showMenu("Help"); };
+    // Janelas independentes (começam escondidas).
+    consoleWindow  = std::make_unique<PanelWindow>(I18n::t("view.mixer"), new ConsolePanel(model),     1280, 640);
+    noteWindow     = std::make_unique<PanelWindow>("Piano Roll",           new NoteCanvasPanel(model), 980, 640);
+    beatWindow     = std::make_unique<PanelWindow>("Beat Editor",          new BeatDeckPanel(model),   880, 520);
+    mashupWindow   = std::make_unique<PanelWindow>(I18n::t("view.mashup"), new MashupPanel(model, engine), 1000, 560);
+    vaultWindow    = std::make_unique<PanelWindow>(I18n::t("view.vault"),  new PluginVaultPanel(model), 760, 520);
+    settingsWindow = std::make_unique<PanelWindow>(I18n::t("settings.title"),
+                                                   new SettingsPanel(engine, [this] { refreshTexts(); }),
+                                                   660, 560);
 
-    newButton.onClick = [this] { newProject(); };
-    openButton.onClick = [this] { showOpenMenu(); };
-    saveButton.onClick = [this] { saveProject(); };
-    saveAsButton.onClick = [this] { saveProjectAs(); };
+    // Barra inferior: uma aba por janela. A playlist está sempre visível.
+    taskBar.addTab(I18n::t("tab.playlist"), [this] { playlist.grabKeyboardFocus(); });
+    tabMixer    = taskBar.addTab(I18n::t("view.mixer"),  [this] { toggleWindow(*consoleWindow); });
+    tabPiano    = taskBar.addTab("Piano Roll",            [this] { toggleWindow(*noteWindow); });
+    tabBeat     = taskBar.addTab("Beat Editor",           [this] { toggleWindow(*beatWindow); });
+    tabMashup   = taskBar.addTab(I18n::t("view.mashup"), [this] { toggleWindow(*mashupWindow); });
+    tabVault    = taskBar.addTab(I18n::t("view.vault"),  [this] { toggleWindow(*vaultWindow); });
+    tabSettings = taskBar.addTab(I18n::t("view.settings"), [this] { toggleWindow(*settingsWindow); });
+    taskBar.setTabActive(0, true);
 
-    volumeSlider.setSliderStyle(juce::Slider::LinearHorizontal);
-    volumeSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 52, 20);
-    volumeSlider.setRange(0.0, 1.0, 0.001);
-    volumeSlider.setValue(0.8, juce::dontSendNotification);
-    engine.setGain(0.8f);
-    volumeSlider.onValueChange = [this] { engine.setGain((float) volumeSlider.getValue()); };
+    bindWindow(*consoleWindow,  tabMixer);
+    bindWindow(*noteWindow,     tabPiano);
+    bindWindow(*beatWindow,     tabBeat);
+    bindWindow(*mashupWindow,   tabMashup);
+    bindWindow(*vaultWindow,    tabVault);
+    bindWindow(*settingsWindow, tabSettings);
 
-    fileLabel.setText(I18n::t("status.ready"), juce::dontSendNotification);
-    fileLabel.setColour(juce::Label::textColourId, DawLookAndFeel::muted);
-    timeLabel.setText("00:00.00 / 00:00.00", juce::dontSendNotification);
-    timeLabel.setJustificationType(juce::Justification::centredRight);
-    waveform.onSeek = [this](double seconds) { engine.seek(seconds); };
-
-    for (auto* component : {
-             static_cast<juce::Component*>(&logo),
-             static_cast<juce::Component*>(&fileMenuButton),
-             static_cast<juce::Component*>(&editMenuButton),
-             static_cast<juce::Component*>(&viewMenuButton),
-             static_cast<juce::Component*>(&toolsMenuButton),
-             static_cast<juce::Component*>(&helpMenuButton),
-             static_cast<juce::Component*>(&newButton),
-             static_cast<juce::Component*>(&openButton),
-             static_cast<juce::Component*>(&saveButton),
-             static_cast<juce::Component*>(&saveAsButton),
-             static_cast<juce::Component*>(&loadAudioButton),
-             static_cast<juce::Component*>(&startButton),
-             static_cast<juce::Component*>(&playButton),
-             static_cast<juce::Component*>(&stopButton),
-             static_cast<juce::Component*>(&recordButton),
-             static_cast<juce::Component*>(&bpmLabel),
-             static_cast<juce::Component*>(&volumeSlider),
-             static_cast<juce::Component*>(&fileLabel),
-             static_cast<juce::Component*>(&timeLabel),
-             static_cast<juce::Component*>(&waveform),
-             static_cast<juce::Component*>(&browserButton),
-             static_cast<juce::Component*>(&timelineButton),
-             static_cast<juce::Component*>(&consoleButton),
-             static_cast<juce::Component*>(&beatButton),
-             static_cast<juce::Component*>(&noteButton),
-             static_cast<juce::Component*>(&vaultButton),
-             static_cast<juce::Component*>(&mashupButton),
-             static_cast<juce::Component*>(&settingsButton),
-             static_cast<juce::Component*>(&automationButton) })
-        addAndMakeVisible(component);
-
-    browserWindow  = std::make_unique<PanelWindow>(I18n::t("view.browser"), new BrowserPanel(model), 230, 620);
-    timelineWindow = std::make_unique<PanelWindow>(I18n::t("view.playlist"), new TimelinePanel(model), 900, 330);
-    consoleWindow  = std::make_unique<PanelWindow>(I18n::t("view.mixer"), new ConsolePanel(model), 900, 230);
-    beatWindow     = std::make_unique<PanelWindow>(I18n::t("view.beat"), new BeatDeckPanel(model), 900, 190);
-    noteWindow     = std::make_unique<PanelWindow>(I18n::t("view.notes"), new NoteCanvasPanel(model), 900, 430);
-    vaultWindow    = std::make_unique<PanelWindow>(I18n::t("view.vault"), new PluginVaultPanel(model), 520, 420);
-    mashupWindow   = std::make_unique<PanelWindow>(I18n::t("view.mashup"), new MashupPanel(model, engine), 920, 520);
-    automationWindow = std::make_unique<PanelWindow>("Automation", new AutomationPanel(model), 760, 360);
-    settingsWindow = std::make_unique<PanelWindow>(
-        I18n::t("settings.title"),
-        new SettingsPanel(engine, [this] { refreshTexts(); },
-                          [this](int preset) { applyLayoutPreset(preset); }),
-        620, 430);
-
-    for (auto* panel : { browserWindow.get(), timelineWindow.get(), consoleWindow.get(),
-                         beatWindow.get(), noteWindow.get(), vaultWindow.get(),
-                         mashupWindow.get(), settingsWindow.get(), automationWindow.get() })
-        addAndMakeVisible(panel);
-
-    setSize(1440, 900);
-
-    bindPanel(browserButton, *browserWindow);
-    bindPanel(timelineButton, *timelineWindow);
-    bindPanel(consoleButton, *consoleWindow);
-    bindPanel(beatButton, *beatWindow);
-    bindPanel(noteButton, *noteWindow);
-    bindPanel(vaultButton, *vaultWindow);
-    bindPanel(mashupButton, *mashupWindow);
-    bindPanel(settingsButton, *settingsWindow);
-    bindPanel(automationButton, *automationWindow);
-
-    browserButton.setButtonText("⌕");
-    timelineButton.setButtonText("▦");
-    consoleButton.setButtonText("▥");
-    beatButton.setButtonText("▧");
-    noteButton.setButtonText("♫");
-    vaultButton.setButtonText("◇");
-    mashupButton.setButtonText("◉");
-    settingsButton.setButtonText("⚙");
-    automationButton.setButtonText("⌁");
-    automationButton.setTooltip("Automation editor");
-
-    browserButton.setTooltip("Browser — show or hide sound library");
-    timelineButton.setTooltip("Playlist — show or hide arrangement");
-    consoleButton.setTooltip("Mixer — show or hide channel mixer");
-    beatButton.setTooltip("Patterns — show or hide pattern editor");
-    noteButton.setTooltip("Note editor — show or hide");
-    vaultButton.setTooltip("Plugin library — show or hide");
-    mashupButton.setTooltip("DJ decks — show or hide");
-
-    refreshTexts();
     loadRecentList();
     resetHistory();
+
     model.addChangeListener(this);
     startTimerHz(30);
 
-    applyLayoutPreset((int) OpaloSettings::get().getIntValue("layoutPreset", 0));
-
+    splash = std::make_unique<SplashScreen>();
+    addAndMakeVisible(*splash);
+    splash->setBounds(getLocalBounds());
+    splash->onFinished = [safe = juce::Component::SafePointer<MainComponent>(this)]
+    {
+        juce::MessageManager::callAsync([safe]
+        {
+            if (auto* self = safe.getComponent())
+                self->splash.reset();
+        });
+    };
 
     updateTitle();
-    updateControls();
+    refreshTexts();
 }
 
 MainComponent::~MainComponent()
@@ -166,272 +87,136 @@ MainComponent::~MainComponent()
     juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
 }
 
+// ----- Janelas e menus -----------------------------------------------------------
+
+void MainComponent::toggleWindow(PanelWindow& window)
+{
+    window.setVisible(! window.isVisible());
+    if (window.isVisible())
+        window.toFront(true);
+}
+
+void MainComponent::bindWindow(PanelWindow& window, int tabIndex)
+{
+    window.onVisibilityChanged = [this, tabIndex](bool visible)
+    {
+        taskBar.setTabActive(tabIndex, visible);
+    };
+}
+
 void MainComponent::refreshTexts()
 {
-    newButton.setButtonText(I18n::t("file.new"));
-    openButton.setButtonText(I18n::t("file.open"));
-    saveButton.setButtonText(I18n::t("file.save"));
-    saveAsButton.setButtonText(I18n::t("file.saveAs"));
-    loadAudioButton.setButtonText(I18n::t("audio.load"));
-    startButton.setButtonText("|◀");
-    startButton.setTooltip("Start playback from the beginning");
-    playButton.setButtonText("▶");
-    stopButton.setButtonText("■");
-    recordButton.setButtonText("● REC");
-
-    browserButton.setButtonText("⌕");
-    timelineButton.setButtonText("▦");
-    consoleButton.setButtonText("▥");
-    beatButton.setButtonText("▧");
-    noteButton.setButtonText("♫");
-    vaultButton.setButtonText("◇");
-    mashupButton.setButtonText("◉");
-    settingsButton.setButtonText("⚙");
+    topBar.refreshTexts();
 }
 
-void MainComponent::bindPanel(juce::TextButton& button, PanelWindow& window)
-{
-    button.setClickingTogglesState(true);
-    button.setToggleState(window.isVisible(), juce::dontSendNotification);
-    button.onClick = [&button, &window]
-    {
-        window.setVisible(button.getToggleState());
-        if (button.getToggleState())
-            window.toFront(false);
-    };
-
-    window.onVisibilityChanged = [&button](bool visible)
-    {
-        button.setToggleState(visible, juce::dontSendNotification);
-    };
-}
-
-void MainComponent::showMenu(const juce::String& menuName)
+void MainComponent::showMenu(const juce::String& key)
 {
     juce::PopupMenu menu;
 
-    if (menuName == "File")
+    if (key == "menu.file")
     {
-        menu.addItem(1, "New project");
-        menu.addItem(2, "Open project");
-        menu.addItem(3, "Save");
-        menu.addItem(4, "Save as...");
+        juce::PopupMenu recent;
+        for (int i = 0; i < recentProjects.size(); ++i)
+            recent.addItem(100 + i, juce::File(recentProjects[i]).getFileNameWithoutExtension());
+        if (recentProjects.isEmpty())
+            recent.addItem(999, "—", false);
+
+        menu.addItem(1, I18n::t("file.new"));
+        menu.addItem(2, I18n::t("file.open"));
+        menu.addSubMenu(I18n::t("file.recent"), recent);
         menu.addSeparator();
-        menu.addItem(5, "Import audio...");
-        menu.addItem(6, "Quit");
-    }
-    else if (menuName == "Edit")
-    {
-        menu.addItem(1, "Undo");
-        menu.addItem(2, "Redo");
+        menu.addItem(3, I18n::t("file.save"));
+        menu.addItem(4, I18n::t("file.saveAs"));
         menu.addSeparator();
-        menu.addItem(3, "Cut tool  (C)");
-        menu.addItem(4, "Select tool  (D)");
+        menu.addItem(5, I18n::t("file.loadAudio"));
     }
-    else if (menuName == "View")
+    else if (key == "menu.edit")
     {
-        menu.addItem(1, "Browser", true, browserWindow->isVisible());
-        menu.addItem(2, "Playlist", true, timelineWindow->isVisible());
-        menu.addItem(3, "Patterns", true, beatWindow->isVisible());
-        menu.addItem(4, "Mixer", true, consoleWindow->isVisible());
-        menu.addItem(5, "Note Editor", true, noteWindow->isVisible());
-        menu.addItem(6, "Plugin Vault", true, vaultWindow->isVisible());
-        menu.addItem(7, "Mashup decks", true, mashupWindow->isVisible());
-        menu.addSeparator();
-        menu.addItem(8, "Settings");
-        menu.addItem(9, "Automation");
+        menu.addItem(10, I18n::t("edit.undo"));
+        menu.addItem(11, I18n::t("edit.redo"));
     }
-    else if (menuName == "Tools")
+    else if (key == "menu.add")
     {
-        menu.addItem(1, "DJ Mashup");
-        menu.addItem(2, "Plugin Vault");
-        menu.addItem(3, "Note Editor");
-        menu.addItem(4, "Load audio");
-        menu.addItem(5, "Automation editor");
+        menu.addItem(20, I18n::t("add.channel"));
     }
-    else
+    else if (key == "menu.patterns")
     {
-        menu.addItem(1, "Keyboard shortcuts");
-        menu.addItem(2, "About Opalo");
+        menu.addItem(30, "Beat Editor");
+        menu.addItem(31, "Piano Roll");
+    }
+    else if (key == "menu.view")
+    {
+        menu.addItem(40, I18n::t("tab.playlist"));
+        menu.addItem(41, I18n::t("view.mixer"));
+        menu.addItem(42, "Piano Roll");
+        menu.addItem(43, "Beat Editor");
+        menu.addItem(44, I18n::t("view.mashup"));
+        menu.addItem(45, I18n::t("view.vault"));
+    }
+    else if (key == "menu.options")
+    {
+        menu.addItem(50, I18n::t("view.settings"));
+    }
+    else if (key == "menu.tools")
+    {
+        menu.addItem(45, I18n::t("view.vault"));
+    }
+    else if (key == "menu.help")
+    {
+        menu.addItem(60, "About Opalo");
     }
 
     juce::Component::SafePointer<MainComponent> safe(this);
-    auto* target = menuName == "File" ? static_cast<juce::Component*>(&fileMenuButton)
-                : menuName == "Edit" ? static_cast<juce::Component*>(&editMenuButton)
-                : menuName == "View" ? static_cast<juce::Component*>(&viewMenuButton)
-                : menuName == "Tools" ? static_cast<juce::Component*>(&toolsMenuButton)
-                                      : static_cast<juce::Component*>(&helpMenuButton);
-
-    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(target),
-        [safe, menuName](int result)
-        {
-            auto* self = safe.getComponent();
-            if (self == nullptr || result == 0) return;
-
-            if (menuName == "File")
-            {
-                if (result == 1) self->newProject();
-                else if (result == 2) self->openProject();
-                else if (result == 3) self->saveProject();
-                else if (result == 4) self->saveProjectAs();
-                else if (result == 5) self->loadAudio();
-                else if (result == 6) juce::JUCEApplication::getInstance()->systemRequestedQuit();
-            }
-            else if (menuName == "Edit")
-            {
-                if (result == 1) self->undo();
-                else if (result == 2) self->redo();
-                else if (result == 3)
-                {
-                    if (auto* timeline = dynamic_cast<TimelinePanel*>(self->timelineWindow->getContentComponent()))
-                        timeline->setTool(TimelinePanel::Tool::Cut);
-                    self->timelineWindow->setVisible(true);
-                    self->timelineWindow->toFront(false);
-                }
-                else if (result == 4)
-                {
-                    if (auto* timeline = dynamic_cast<TimelinePanel*>(self->timelineWindow->getContentComponent()))
-                        timeline->setTool(TimelinePanel::Tool::Select);
-                    self->timelineWindow->setVisible(true);
-                    self->timelineWindow->toFront(false);
-                }
-            }
-            else if (menuName == "View")
-            {
-                PanelWindow* panels[] = { self->browserWindow.get(), self->timelineWindow.get(),
-                    self->beatWindow.get(), self->consoleWindow.get(), self->noteWindow.get(),
-                    self->vaultWindow.get(), self->mashupWindow.get(), self->settingsWindow.get() };
-                if (result >= 1 && result <= 8)
-                {
-                    auto* panel = panels[result - 1];
-                    panel->setVisible(!panel->isVisible());
-                    if (panel->isVisible()) panel->toFront(false);
-                }
-            }
-            else if (menuName == "Tools")
-            {
-                if (result == 1) { self->mashupWindow->setVisible(true); self->mashupWindow->toFront(false); }
-                else if (result == 2) { self->vaultWindow->setVisible(true); self->vaultWindow->toFront(false); }
-                else if (result == 3) { self->noteWindow->setVisible(true); self->noteWindow->toFront(false); }
-                else if (result == 4) self->loadAudio();
-                else if (result == 5) { self->automationWindow->setVisible(true); self->automationWindow->toFront(false); }
-            }
-            else
-            {
-                if (result == 1)
-                    juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon, "Opalo shortcuts",
-                        "Ctrl+N  New project\nCtrl+O  Open project\nCtrl+S  Save\nCtrl+Z  Undo\nCtrl+Y  Redo\nC  Slice\nD  Select\nP  Pencil\nB  Brush\nX  Copy");
-                else
-                    juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon, "About Opalo",
-                        "Opalo Digital Audio Workstation\nVersion 0.1.0\nA creative audio workspace.");
-            }
-        });
+    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&topBar),
+                       [safe](int id)
+                       {
+                           if (auto* self = safe.getComponent())
+                               if (id > 0)
+                                   self->handleMenu(id);
+                       });
 }
 
-void MainComponent::applyLayoutPreset(int preset)
+void MainComponent::handleMenu(int id)
 {
-    preset = juce::jlimit(0, 3, preset);
-    const auto area = getLocalBounds().withTrimmedTop(108).reduced(8);
-    const int gap = 8;
-    const int browserW = juce::jlimit(190, 280, area.getWidth() / 6);
-    const int workX = area.getX() + browserW + gap;
-    const int workW = juce::jmax(320, area.getRight() - workX);
-    const int workH = area.getHeight();
-
-    // Bounds de abertura para painéis opcionais, sem os colocar por cima da barra superior.
-    noteWindow->setBounds(workX + 36, area.getY() + 34, juce::jmin(workW - 72, 980), juce::jmin(workH - 68, 560));
-    vaultWindow->setBounds(workX + 70, area.getY() + 50, juce::jmin(workW - 140, 620), juce::jmin(workH - 100, 500));
-    mashupWindow->setBounds(workX + 24, area.getY() + 24, workW - 48, juce::jmax(300, workH - 48));
-    automationWindow->setBounds(area.getX() + 80, area.getY() + 70, juce::jmin(760, area.getWidth() - 160), 360);
-    settingsWindow->setBounds(area.getX() + (area.getWidth() - 620) / 2,
-                              area.getY() + (area.getHeight() - 430) / 2,
-                              juce::jmin(620, area.getWidth()), juce::jmin(430, area.getHeight()));
-
-    for (auto* panel : { browserWindow.get(), timelineWindow.get(), consoleWindow.get(),
-                         beatWindow.get(), noteWindow.get(), vaultWindow.get(),
-                         mashupWindow.get(), settingsWindow.get(), automationWindow.get() })
-        panel->setVisible(false);
-
-    if (preset == 0) // Studio padrão: Browser à esquerda, Playlist ao centro e Beat Editor em baixo.
+    switch (id)
     {
-        const int dockBrowserWidth = juce::jlimit(220, 280, area.getWidth() / 7);
-        const int workspaceX = area.getX() + dockBrowserWidth + gap;
-        const int workspaceWidth = juce::jmax(280, area.getRight() - workspaceX);
-        const int playlistHeight = juce::jlimit(300, juce::jmax(300, workH - 210), workH * 56 / 100);
-        const int beatY = area.getY() + playlistHeight + gap;
-        const int beatHeight = juce::jmax(170, area.getBottom() - beatY);
+        case 1:  newProject(); break;
+        case 2:  openProject(); break;
+        case 3:  saveProject(); break;
+        case 4:  saveProjectAs(); break;
+        case 5:  loadAudio(); break;
 
-        browserWindow->setBounds(area.getX(), area.getY(), dockBrowserWidth, workH);
-        timelineWindow->setBounds(workspaceX, area.getY(), workspaceWidth, playlistHeight);
-        beatWindow->setBounds(workspaceX, beatY, workspaceWidth, beatHeight);
+        case 10: undo(); break;
+        case 11: redo(); break;
 
-        // O Mixer e as restantes ferramentas ficam disponíveis pelos ícones,
-        // mas não ocupam o espaço de trabalho ao iniciar.
-        consoleWindow->setBounds(workspaceX + 24, area.getY() + 24,
-                                 juce::jmin(workspaceWidth - 48, 1100),
-                                 juce::jmin(workH - 48, 420));
-        noteWindow->setBounds(workspaceX + 24, area.getY() + 24,
-                              juce::jmin(workspaceWidth - 48, 1100),
-                              juce::jmin(workH - 48, 560));
-        vaultWindow->setBounds(workspaceX + 36, area.getY() + 36,
-                               juce::jmin(workspaceWidth - 72, 620),
-                               juce::jmin(workH - 72, 500));
-        mashupWindow->setBounds(workspaceX + 24, area.getY() + 24,
-                                juce::jmin(workspaceWidth - 48, 1100),
-                                juce::jmin(workH - 48, 560));
-        automationWindow->setBounds(workspaceX + 40, area.getY() + 40,
-                                    juce::jmin(workspaceWidth - 80, 760),
-                                    juce::jmin(workH - 80, 420));
+        case 20:
+            model.addChannel("Channel " + juce::String((int) model.channels.size() + 1),
+                             ProjectModel::paletteColour((int) model.channels.size()));
+            break;
 
-        browserWindow->setVisible(true);
-        timelineWindow->setVisible(true);
-        beatWindow->setVisible(true);
-        consoleWindow->setVisible(false);
-        noteWindow->setVisible(false);
-        vaultWindow->setVisible(false);
-        mashupWindow->setVisible(false);
-        settingsWindow->setVisible(false);
-        automationWindow->setVisible(false);
+        case 30: beatWindow->setVisible(true);  beatWindow->toFront(true);  break;
+        case 31:
+        case 42: noteWindow->setVisible(true);  noteWindow->toFront(true);  break;
+        case 40: playlist.grabKeyboardFocus(); break;
+        case 41: consoleWindow->setVisible(true); consoleWindow->toFront(true); break;
+        case 43: beatWindow->setVisible(true);  beatWindow->toFront(true);  break;
+        case 44: mashupWindow->setVisible(true); mashupWindow->toFront(true); break;
+        case 45: vaultWindow->setVisible(true); vaultWindow->toFront(true); break;
+        case 50: settingsWindow->setVisible(true); settingsWindow->toFront(true); break;
+
+        case 60:
+            juce::NativeMessageBox::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon, "Opalo",
+                                                        I18n::t("about.text"));
+            break;
+
+        default:
+            if (id >= 100)
+                openRecent(id - 100);
+            break;
     }
-    else if (preset == 1) // Arrangement Focus
-    {
-        browserWindow->setBounds(area.getX(), area.getY(), browserW, workH);
-        timelineWindow->setBounds(workX, area.getY(), workW, workH * 58 / 100);
-        noteWindow->setBounds(workX, area.getY() + workH * 58 / 100 + gap, workW, workH * 42 / 100 - gap);
-        browserWindow->setVisible(true);
-        timelineWindow->setVisible(true);
-        noteWindow->setVisible(true);
-    }
-    else if (preset == 2) // Mix Focus
-    {
-        timelineWindow->setBounds(area.getX(), area.getY(), area.getWidth(), workH * 34 / 100);
-        consoleWindow->setBounds(area.getX(), area.getY() + workH * 34 / 100 + gap,
-                                 area.getWidth(), workH * 66 / 100 - gap);
-        timelineWindow->setVisible(true);
-        consoleWindow->setVisible(true);
-    }
-    else // DJ Mashup
-    {
-        browserWindow->setBounds(area.getX(), area.getY(), browserW, workH);
-        mashupWindow->setBounds(workX, area.getY(), workW, workH * 72 / 100);
-        consoleWindow->setBounds(workX, area.getY() + workH * 72 / 100 + gap,
-                                 workW, workH * 28 / 100 - gap);
-        browserWindow->setVisible(true);
-        mashupWindow->setVisible(true);
-        consoleWindow->setVisible(true);
-    }
-
-    layoutInitialized = true;
-    for (auto* panel : { timelineWindow.get(), consoleWindow.get(), beatWindow.get(),
-                         noteWindow.get(), vaultWindow.get(), mashupWindow.get(),
-                         settingsWindow.get(), automationWindow.get() })
-        if (panel->isVisible()) panel->toFront(false);
-    if (browserWindow->isVisible()) browserWindow->toFront(false);
-
-    repaint();
 }
 
-// ----- Pastas e ficheiros de apoio -----------------------------------------------
+// ----- Projeto -------------------------------------------------------------------
 
 juce::File MainComponent::appDataFolder()
 {
@@ -484,8 +269,6 @@ void MainComponent::rememberRecent(const juce::File& file)
     recentListFile().replaceWithText(recentProjects.joinIntoString("\n"));
 }
 
-// ----- Projeto -------------------------------------------------------------------
-
 bool MainComponent::canDiscardChanges()
 {
     if (! dirty)
@@ -509,7 +292,6 @@ void MainComponent::newProject()
     currentFile = juce::File{};
     dirty = false;
     resetHistory();
-    fileLabel.setText("New project", juce::dontSendNotification);
     updateTitle();
 }
 
@@ -529,34 +311,6 @@ void MainComponent::openProject()
                                     if (file.existsAsFile())
                                         loadProjectFrom(file);
                                 });
-}
-
-void MainComponent::showOpenMenu()
-{
-    juce::PopupMenu menu;
-
-    for (int i = 0; i < recentProjects.size(); ++i)
-        menu.addItem(i + 1, juce::File(recentProjects[i]).getFileNameWithoutExtension());
-
-    if (recentProjects.isEmpty())
-        menu.addItem(-1, "No recent projects", false);
-
-    menu.addSeparator();
-    menu.addItem(1000, "Browse…");
-
-    juce::Component::SafePointer<MainComponent> safe(this);
-    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&openButton),
-                       [safe](int result)
-                       {
-                           auto* self = safe.getComponent();
-                           if (self == nullptr)
-                               return;
-
-                           if (result == 1000)
-                               self->openProject();
-                           else if (result >= 1)
-                               self->openRecent(result - 1);
-                       });
 }
 
 void MainComponent::openRecent(int index)
@@ -584,11 +338,11 @@ void MainComponent::loadProjectFrom(const juce::File& file)
         dirty = false;
         rememberRecent(file);
         resetHistory();
-        fileLabel.setText("Opened " + file.getFileName(), juce::dontSendNotification);
+        taskBar.setStatus("Opened " + file.getFileName());
     }
     else
     {
-        fileLabel.setText(error, juce::dontSendNotification);
+        taskBar.setStatus(error);
     }
 
     updateTitle();
@@ -636,11 +390,11 @@ void MainComponent::writeProject(const juce::File& file)
         currentFile = file;
         dirty = false;
         rememberRecent(file);
-        fileLabel.setText("Saved " + file.getFileName(), juce::dontSendNotification);
+        taskBar.setStatus("Saved " + file.getFileName());
     }
     else
     {
-        fileLabel.setText(error, juce::dontSendNotification);
+        taskBar.setStatus(error);
     }
 
     updateTitle();
@@ -700,7 +454,6 @@ void MainComponent::undo()
         flushHistory();
 
     applySnapshot(history.undo());
-    fileLabel.setText("Undo", juce::dontSendNotification);
 }
 
 void MainComponent::redo()
@@ -709,7 +462,6 @@ void MainComponent::redo()
         flushHistory();
 
     applySnapshot(history.redo());
-    fileLabel.setText("Redo", juce::dontSendNotification);
 }
 
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster*)
@@ -744,14 +496,7 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
 
     if (c == 'o') { openProject(); return true; }
     if (c == 'n') { newProject();  return true; }
-
-    if (c == 'z')
-    {
-        if (key.getModifiers().isShiftDown()) redo();
-        else                                  undo();
-        return true;
-    }
-
+    if (c == 'z') { if (key.getModifiers().isShiftDown()) redo(); else undo(); return true; }
     if (c == 'y') { redo(); return true; }
 
     return false;
@@ -763,7 +508,7 @@ void MainComponent::loadAudio()
 {
     audioChooser = std::make_unique<juce::FileChooser>("Open audio file",
                                                        juce::File{},
-                                                       "*.wav;*.aif;*.aiff;*.flac;*.ogg");
+                                                       OpaloAudioFormats::audioWildcard());
     audioChooser->launchAsync(juce::FileBrowserComponent::openMode
                                   | juce::FileBrowserComponent::canSelectFiles,
                               [this](const juce::FileChooser& fc)
@@ -772,19 +517,9 @@ void MainComponent::loadAudio()
                                   if (! file.existsAsFile())
                                       return;
 
-                                  if (engine.loadFile(file))
-                                  {
-                                      fileLabel.setText(file.getFileName(), juce::dontSendNotification);
-                                      waveform.setFile(file);
-                                  }
-                                  else
-                                  {
-                                      fileLabel.setText("Could not open: " + file.getFileName(),
-                                                        juce::dontSendNotification);
-                                      waveform.setFile(juce::File{});
-                                  }
-
-                                  updateControls();
+                                  taskBar.setStatus(engine.loadFile(file)
+                                                        ? "Loaded " + file.getFileName()
+                                                        : "Could not open " + file.getFileName());
                               });
 }
 
@@ -792,15 +527,13 @@ void MainComponent::timerCallback()
 {
     model.playheadSeconds = engine.getPosition();
 
-    timeLabel.setText(formatTime(engine.getPosition()) + " / " + formatTime(engine.getLength()),
-                      juce::dontSendNotification);
-    waveform.setPlayhead(engine.getPosition(), engine.getLength());
-    updateControls();
+    topBar.update(engine.isPlaying(), engine.isLooping(), engine.getPosition(),
+                  model.bpm, engine.getCpuUsage() * 100.0);
 
     if (changePending && ++changeTicks >= historyDelayTicks)
         flushHistory();
 
-    // Cópia de recuperação a cada cinco minutos, se houver alterações.
+    // Cópia de recuperação a cada minuto, se houver alterações.
     if (++autosaveTicks >= autosaveIntervalTicks)
     {
         autosaveTicks = 0;
@@ -812,126 +545,22 @@ void MainComponent::timerCallback()
     }
 }
 
-void MainComponent::updateControls()
-{
-    const bool hasFile = engine.hasFile();
-    const bool playing = engine.isPlaying();
-
-    playButton.setEnabled(hasFile && ! playing);
-    stopButton.setEnabled(hasFile);
-    playButton.setToggleState(playing, juce::dontSendNotification);
-    bpmLabel.setText(juce::String(model.bpm, 1) + " BPM", juce::dontSendNotification);
-}
-
 // ----- Desenho e layout ----------------------------------------------------------
 
 void MainComponent::paint(juce::Graphics& g)
 {
-    g.fillAll(OpaloDesign::background);
-    auto menuBar = getLocalBounds().removeFromTop(36);
-    g.setColour(OpaloDesign::surface0);
-    g.fillRect(menuBar);
-    auto transport = getLocalBounds().withTrimmedTop(36).removeFromTop(36);
-    g.setColour(OpaloDesign::surface1);
-    g.fillRect(transport);
-    auto shortcuts = getLocalBounds().withTrimmedTop(72).removeFromTop(36);
-    g.setColour(OpaloDesign::surface0);
-    g.fillRect(shortcuts);
-    auto waveformFooter = juce::Rectangle<int>();
-    g.setColour(OpaloDesign::surface1);
-    g.fillRect(waveformFooter);
-    g.setColour(OpaloDesign::accent.withAlpha(0.48f));
-    g.fillRect(0, 108, getWidth(), 1);
+    space.paint(g, getLocalBounds());
 }
 
 void MainComponent::resized()
 {
-    auto menu = getLocalBounds().removeFromTop(36).reduced(12, 3);
-    logo.setBounds(menu.removeFromLeft(150).withSizeKeepingCentre(142, 29));
-    menu.removeFromLeft(12);
-    fileMenuButton.setBounds(menu.removeFromLeft(58));
-    editMenuButton.setBounds(menu.removeFromLeft(58));
-    viewMenuButton.setBounds(menu.removeFromLeft(62));
-    toolsMenuButton.setBounds(menu.removeFromLeft(62));
-    helpMenuButton.setBounds(menu.removeFromLeft(58));
+    const auto area = getLocalBounds();
 
-    auto transport = getLocalBounds().withTrimmedTop(36).removeFromTop(36).reduced(10, 2);
-    newButton.setBounds(transport.removeFromLeft(58));
-    transport.removeFromLeft(5);
-    openButton.setBounds(transport.removeFromLeft(58));
-    transport.removeFromLeft(5);
-    saveButton.setBounds(transport.removeFromLeft(58));
-    transport.removeFromLeft(5);
-    saveAsButton.setBounds(transport.removeFromLeft(70));
-    transport.removeFromLeft(10);
-    loadAudioButton.setBounds(transport.removeFromLeft(94));
-    transport.removeFromLeft(8);
-    startButton.setBounds(transport.removeFromLeft(42));
-    transport.removeFromLeft(4);
-    playButton.setBounds(transport.removeFromLeft(38));
-    transport.removeFromLeft(4);
-    stopButton.setBounds(transport.removeFromLeft(38));
-    transport.removeFromLeft(4);
-    recordButton.setBounds(transport.removeFromLeft(58));
-    transport.removeFromLeft(10);
-    bpmLabel.setBounds(transport.removeFromLeft(86));
-    transport.removeFromLeft(10);
-    timeLabel.setBounds(transport.removeFromRight(90));
-    transport.removeFromRight(10);
-    volumeSlider.setBounds(transport.removeFromRight(100));
-    transport.removeFromRight(12);
-    fileLabel.setBounds(transport);
+    topBar.setBounds(area.removeFromTop(topBarHeight));
+    taskBar.setBounds(area.removeFromBottom(TaskBar::height));
+    sidebar.setBounds(area.removeFromLeft(sidebarWidth));
+    playlist.setBounds(area);
 
-    auto shortcuts = getLocalBounds().withTrimmedTop(72).removeFromTop(36).reduced(10, 3);
-    browserButton.setBounds(shortcuts.removeFromLeft(38));
-    timelineButton.setBounds(shortcuts.removeFromLeft(38));
-    beatButton.setBounds(shortcuts.removeFromLeft(38));
-    consoleButton.setBounds(shortcuts.removeFromLeft(38));
-    noteButton.setBounds(shortcuts.removeFromLeft(38));
-    vaultButton.setBounds(shortcuts.removeFromLeft(38));
-    mashupButton.setBounds(shortcuts.removeFromLeft(38));
-    automationButton.setBounds(shortcuts.removeFromLeft(38));
-    settingsButton.setBounds(shortcuts.removeFromRight(38));
-    for (auto* button : { &browserButton, &timelineButton, &beatButton, &consoleButton,
-                          &noteButton, &vaultButton, &mashupButton, &automationButton, &settingsButton })
-    {
-        button->setColour(juce::TextButton::buttonColourId, OpaloDesign::surface1);
-        button->setColour(juce::TextButton::buttonOnColourId, OpaloDesign::accentDim);
-        button->setColour(juce::TextButton::textColourOffId, OpaloDesign::text);
-        button->setColour(juce::TextButton::textColourOnId, OpaloDesign::background);
-    }
-
-    waveform.setBounds(0, 0, 0, 0);
-
-    if (! layoutInitialized)
-        applyLayoutPreset(0);
-    else
-    {
-        const auto workspace = getLocalBounds().withTrimmedTop(108).reduced(4);
-        for (auto* panel : { browserWindow.get(), timelineWindow.get(), consoleWindow.get(),
-                             beatWindow.get(), noteWindow.get(), vaultWindow.get(),
-                             mashupWindow.get(), settingsWindow.get(), automationWindow.get() })
-        {
-            auto bounds = panel->getBounds();
-            bounds.setWidth(juce::jlimit(280, workspace.getWidth(), bounds.getWidth()));
-            bounds.setHeight(juce::jlimit(150, workspace.getHeight(), bounds.getHeight()));
-            bounds.setX(juce::jlimit(workspace.getX(), workspace.getRight() - bounds.getWidth(), bounds.getX()));
-            bounds.setY(juce::jlimit(workspace.getY(), workspace.getBottom() - bounds.getHeight(), bounds.getY()));
-            panel->setBounds(bounds);
-        }
-    }
-
-}
-
-juce::String MainComponent::formatTime(double seconds)
-{
-    if (seconds < 0.0)
-        seconds = 0.0;
-
-    const int totalCentis = (int) juce::roundToInt(seconds * 100.0);
-    const int minutes = totalCentis / 6000;
-    const int secs = (totalCentis / 100) % 60;
-    const int centis = totalCentis % 100;
-
-    return juce::String::formatted("%02d:%02d.%02d", minutes, secs, centis);
+    if (splash != nullptr)
+        splash->setBounds(getLocalBounds());
 }

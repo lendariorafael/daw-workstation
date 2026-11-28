@@ -5,10 +5,6 @@ project(Opalo VERSION 0.1.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-if (MSVC)
-    add_compile_options(/utf-8)
-endif()
-
 # Versão fixa do JUCE. Confirmar a tag em https://github.com/juce-framework/JUCE/tags
 set(JUCE_VERSION "8.0.15" CACHE STRING "Versão (tag) do JUCE usada pelo projeto")
 
@@ -40,6 +36,8 @@ target_sources(Opalo PRIVATE
     Source/Settings/OpaloSettings.h
     Source/UI/Panels/MashupPanel.h
     Source/UI/Panels/SettingsPanel.h
+    Source/Audio/AudioFormats.h
+    Source/Analysis/KeyDetector.h
     Source/AudioEngine/AudioEngine.h
     Source/UI/DawLookAndFeel.h
     Source/UI/OpaloLogo.h
@@ -54,17 +52,22 @@ target_sources(Opalo PRIVATE
     Source/UI/Panels/NoteCanvasPanel.h
     Source/UI/Panels/PluginVaultPanel.h
     Source/UI/Panels/BrowserPanel.h
-    Source/UI/Panels/AutomationPanel.h
+    Source/UI/Panels/SidebarPanel.h
+    Source/UI/SpaceBackground.h
+    Source/UI/TopBar.h
+    Source/UI/TaskBar.h
 )
 
 target_compile_definitions(Opalo PRIVATE
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_STRICT_REFCOUNTEDPOINTER=1
+    JUCE_DISPLAY_SPLASH_SCREEN=0
     JUCE_REPORT_APP_USAGE=0
     JUCE_PLUGINHOST_VST3=1
     JUCE_PLUGINHOST_VST2=0
     JUCE_PLUGINHOST_AU=0
+    JUCE_USE_MP3AUDIOFORMAT=1
 )
 
 target_link_libraries(Opalo PRIVATE
@@ -75,4 +78,5 @@ target_link_libraries(Opalo PRIVATE
     juce::juce_audio_basics
     juce::juce_audio_processors
     juce::juce_audio_utils
+    juce::juce_dsp
 )

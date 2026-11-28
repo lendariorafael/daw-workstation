@@ -3,6 +3,7 @@
 #include <juce_audio_utils/juce_audio_utils.h>
 #include <cmath>
 #include "../Settings/OpaloSettings.h"
+#include "../Audio/AudioFormats.h"
 
 // Motor de áudio: saída do sistema, reprodução do ficheiro principal e dois decks para mashup.
 // Tudo passa por um MixerAudioSource, por isso há uma só cadeia de áudio.
@@ -13,7 +14,7 @@ public:
 
     AudioEngine()
     {
-        formatManager.registerBasicFormats(); // WAV, AIFF, FLAC, OGG
+        OpaloAudioFormats::registerAll(formatManager);
 
         auto saved = OpaloSettings::get().getXmlValue("audioDevice");
         const auto error = deviceManager.initialise(0, 2, saved.get(), true);
@@ -62,6 +63,7 @@ public:
         transport.stop();
         transport.setSource(nullptr);
         currentSource = std::move(newSource);
+        currentSource->setLooping(looping);
         transport.setSource(currentSource.get(), 0, nullptr, sampleRate);
         transport.setPosition(0.0);
         return true;
@@ -77,6 +79,21 @@ public:
         if (hasFile())
             transport.start();
     }
+
+    // Pausa mantém a posição; stop volta ao início.
+    void pause() { transport.stop(); }
+
+    void setLooping(bool shouldLoop)
+    {
+        looping = shouldLoop;
+        if (currentSource != nullptr)
+            currentSource->setLooping(shouldLoop);
+    }
+
+    bool isLooping() const { return looping; }
+
+    // Carga do processador, em 0..1, segundo o driver de áudio.
+    double getCpuUsage() { return deviceManager.getCpuUsage(); }
 
     void stop()
     {
@@ -177,6 +194,7 @@ private:
     juce::AudioDeviceManager deviceManager;
     juce::AudioTransportSource transport;
     std::unique_ptr<juce::AudioFormatReaderSource> currentSource;
+    bool looping = false;
     Deck decks[numDecks];
     juce::MixerAudioSource mixer;
     juce::AudioSourcePlayer player;

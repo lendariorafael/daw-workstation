@@ -19,16 +19,13 @@ public:
         startTimerHz(30);
     }
 
-    enum class Tool { Select, Cut, Pencil, Brush, Copy };
+    enum class Tool { Select, Cut };
 
     bool keyPressed(const juce::KeyPress& key) override
     {
         const auto c = juce::CharacterFunctions::toLowerCase(key.getTextCharacter());
-        if (c == 'c') { setTool(Tool::Cut); return true; }
+        if (c == 'c') { setTool(Tool::Cut);    return true; }
         if (c == 'd') { setTool(Tool::Select); return true; }
-        if (c == 'p') { setTool(Tool::Pencil); return true; }
-        if (c == 'b') { setTool(Tool::Brush); return true; }
-        if (c == 'x') { setTool(Tool::Copy); return true; }
         return false;
     }
 
@@ -61,25 +58,11 @@ public:
             const int x = nameWidth + juce::roundToInt(b * barW);
             const bool strong = (b % 4) == 0;
 
-            // Divisórias verticais tracejadas no estilo de uma grelha de arranjo profissional.
-            g.setColour(DawLookAndFeel::muted.withAlpha(strong ? 0.52f : 0.27f));
-            const float dashTop = (float) rulerHeight;
-            const float dashBottom = (float) getHeight();
-            for (float y = dashTop; y < dashBottom; y += 7.0f)
-                g.drawLine((float) x, y, (float) x, juce::jmin(y + 3.0f, dashBottom), strong ? 1.25f : 0.8f);
+            g.setColour(DawLookAndFeel::muted.withAlpha(strong ? 0.45f : 0.15f));
+            g.drawVerticalLine(x, (float) rulerHeight, (float) getHeight());
 
             g.setColour(strong ? DawLookAndFeel::text : DawLookAndFeel::muted);
             g.drawText(juce::String(b + 1), x + 5, 0, 40, rulerHeight, juce::Justification::centredLeft, false);
-        }
-
-        // Alternância de fundo por compasso: quatro tempos claros, quatro escuros.
-        for (int b = 0; b < totalBars; ++b)
-        {
-            const int x = nameWidth + juce::roundToInt(b * barW);
-            const int nextX = nameWidth + juce::roundToInt((b + 1) * barW);
-            g.setColour((b % 2 == 0) ? DawLookAndFeel::panelLight.withAlpha(0.13f)
-                                     : DawLookAndFeel::background.withAlpha(0.22f));
-            g.fillRect(x, rulerHeight, juce::jmax(1, nextX - x), getHeight() - rulerHeight);
         }
 
         // Faixas visíveis (zebra + destaque da seleção e do hover)
@@ -137,19 +120,15 @@ public:
 
         // Botão da ferramenta (Selecionar / Cortar)
         const auto tb = toolButtonBounds();
-        static const char* toolLabels[] = { "SEL", "SLICE", "PENCIL", "BRUSH", "COPY" };
-        const int segmentWidth = tb.getWidth() / 5;
-        for (int i = 0; i < 5; ++i)
-        {
-            auto segment = tb.withX(tb.getX() + i * segmentWidth).withWidth(
-                i == 4 ? tb.getWidth() - i * segmentWidth : segmentWidth);
-            const bool active = i == static_cast<int>(tool);
-            g.setColour(active ? DawLookAndFeel::accent : DawLookAndFeel::panelLight);
-            g.fillRoundedRectangle(segment.toFloat().reduced(1.0f), 4.0f);
-            g.setColour(active ? DawLookAndFeel::background : DawLookAndFeel::text);
-            g.setFont(DawLookAndFeel::uiFont(9.5f, true));
-            g.drawText(toolLabels[i], segment, juce::Justification::centred, false);
-        }
+        const bool cutting = tool == Tool::Cut;
+        g.setColour(cutting ? DawLookAndFeel::accent : DawLookAndFeel::panelLight);
+        g.fillRoundedRectangle(tb.toFloat(), 6.0f);
+        drawBladeIcon(g, juce::Rectangle<float>((float) tb.getX() + 6.0f, (float) tb.getY() + 4.0f, 18.0f, 18.0f),
+                      cutting ? DawLookAndFeel::background : DawLookAndFeel::text);
+        g.setColour(cutting ? DawLookAndFeel::background : DawLookAndFeel::text);
+        g.setFont(DawLookAndFeel::uiFont(11.0f, true));
+        g.drawText(cutting ? I18n::t("tool.cut") : I18n::t("tool.select"),
+                   tb.withTrimmedLeft(28), juce::Justification::centredLeft, false);
 
         // Cursor de reprodução
         const float px = nameWidth + (float) (model.playheadSeconds / model.secondsPerBar()) * barW;
@@ -190,9 +169,7 @@ public:
         // Botão da ferramenta no canto superior direito da régua.
         if (toolButtonBounds().contains(p))
         {
-            const auto bounds = toolButtonBounds();
-            const int selected = juce::jlimit(0, 4, (p.x - bounds.getX()) * 5 / juce::jmax(1, bounds.getWidth()));
-            setTool(static_cast<Tool>(selected));
+            setTool(tool == Tool::Cut ? Tool::Select : Tool::Cut);
             return;
         }
 
@@ -203,44 +180,28 @@ public:
         if (row < 0 || row >= (int) model.channels.size())
             return;
 
-        if (e.mods.isPopupMenu())
-        {
-            model.selectedChannel = row;
-            juce::PopupMenu menu;
-            menu.addSectionHeader(model.channels[(size_t) row].name);
-            juce::PopupMenu colours;
-            static const juce::uint32 palette[] = { 0xff00d1b2, 0xff7aa2ff, 0xffffb86b, 0xffc792ea,
-                                                    0xfff07178, 0xff89ddff, 0xffc3e88d, 0xffffcb6b,
-                                                    0xffe6a8d7, 0xff9aa5b1, 0xffd6d0c4, 0xff8bc5a8 };
-            for (int i = 0; i < 12; ++i)
-                colours.addItem(i + 1, "Colour " + juce::String(i + 1));
-            menu.addSubMenu("Track colour", colours);
-            menu.addItem(100, "Open in note editor");
-            juce::Component::SafePointer<TimelinePanel> safe(this);
-            menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(this),
-                [safe, row](int result)
-                {
-                    auto* self = safe.getComponent();
-                    if (self == nullptr) return;
-                    if (result >= 1 && result <= 12)
-                    {
-                        self->model.channels[(size_t) row].colour = juce::Colour(palette[result - 1]);
-                        self->model.changed();
-                    }
-                    else if (result == 100)
-                    {
-                        self->model.selectedChannel = row;
-                        self->model.changed();
-                    }
-                });
-            return;
-        }
-
         model.selectedChannel = row;
 
         if (p.x < nameWidth)
         {
             model.changed();
+            return;
+        }
+
+        // Botão direito: apaga o clip sob o cursor, se existir.
+        if (e.mods.isPopupMenu())
+        {
+            const int bar = juce::jlimit(0, totalBars - 1, (int) ((p.x - nameWidth) / barWidth()));
+            for (size_t k = 0; k < model.clips.size(); ++k)
+            {
+                const auto& c = model.clips[k];
+                if (c.channel == row && bar >= c.startBar && bar < c.startBar + c.lengthBars)
+                {
+                    model.clips.erase(model.clips.begin() + (std::ptrdiff_t) k);
+                    model.changed();
+                    return;
+                }
+            }
             return;
         }
 
@@ -251,59 +212,22 @@ public:
         }
 
         const int bar = juce::jlimit(0, totalBars - 1, (int) ((p.x - nameWidth) / barWidth()));
-        if (tool == Tool::Select)
-            return;
 
-        if (tool == Tool::Copy)
-        {
-            for (const auto& clip : model.clips)
-                if (clip.channel == row && bar >= clip.startBar && bar < clip.startBar + clip.lengthBars)
-                {
-                    const int destination = clip.startBar + clip.lengthBars;
-                    if (destination < totalBars)
-                    {
-                        model.clips.push_back(Clip { row, destination, clip.lengthBars });
-                        model.changed();
-                    }
-                    return;
-                }
-            return;
-        }
-
-        addClipAt(row, bar);
-        lastPaintRow = row;
-        lastPaintBar = bar;
-    }
-
-private:
-    void mouseDrag(const juce::MouseEvent& e) override
-    {
-        const auto position = e.getPosition();
-        if (tool != Tool::Brush || position.y < rulerHeight || position.x < nameWidth)
-            return;
-
-        const int row = (position.y - rulerHeight + scrollY) / rowHeight;
-        if (row < 0 || row >= (int) model.channels.size())
-            return;
-        const int bar = juce::jlimit(0, totalBars - 1, (int) ((position.x - nameWidth) / barWidth()));
-        if (row != lastPaintRow || bar != lastPaintBar)
-        {
-            addClipAt(row, bar);
-            lastPaintRow = row;
-            lastPaintBar = bar;
-        }
-    }
-
-    void addClipAt(int row, int bar)
-    {
         for (size_t k = 0; k < model.clips.size(); ++k)
+        {
             if (model.clips[k].channel == row && model.clips[k].startBar == bar)
+            {
+                model.clips.erase(model.clips.begin() + (std::ptrdiff_t) k);
+                model.changed();
                 return;
+            }
+        }
 
         model.clips.push_back(Clip { row, bar, 1 });
         model.changed();
     }
 
+private:
     // Corta o clip sob o cursor no compasso mais próximo. Só corta dentro de um clip.
     void cutAt(int row, int x)
     {
@@ -329,8 +253,7 @@ private:
 
     juce::Rectangle<int> toolButtonBounds() const
     {
-        const int width = juce::jmin(280, juce::jmax(120, getWidth() - 16));
-        return { getWidth() - width - 8, 4, width, rulerHeight - 8 };
+        return { getWidth() - 132, 4, 120, rulerHeight - 8 };
     }
 
     // Ícone de lâmina, desenhado de propósito para ser diferente das tesouras de outros programas:
@@ -391,6 +314,4 @@ private:
     int scrollY = 0;
     int hoverRow = -1;
     Tool tool = Tool::Select;
-    int lastPaintRow = -1;
-    int lastPaintBar = -1;
 };

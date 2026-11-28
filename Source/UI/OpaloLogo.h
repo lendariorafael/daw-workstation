@@ -68,8 +68,7 @@ public:
             for (int i = 0; i < word.length(); ++i)
             {
                 auto letter = word.substring(i, i + 1);
-                // JUCE 8 exposes text measurement through GlyphArrangement.
-                const float w = juce::GlyphArrangement::getStringWidth(font, letter);
+                const float w = font.getStringWidthFloat(letter);
                 g.drawText(letter,
                            juce::Rectangle<float>(x, area.getY(), w + 2.0f, area.getHeight()),
                            juce::Justification::centredLeft,

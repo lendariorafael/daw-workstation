@@ -11,12 +11,15 @@ public:
         : DocumentWindow(name, DawLookAndFeel::background, DocumentWindow::allButtons)
     {
         // Barra de título própria do Opalo, com os botões de janela no canto superior esquerdo.
-        setUsingNativeTitleBar(true);
+        setUsingNativeTitleBar(false);
+        setTitleBarHeight(40);
+        setTitleBarButtonsRequired(DocumentWindow::allButtons, true);
+        setTitleBarTextCentred(true);
 
         auto* content = new MainComponent();
         content->onTitleChanged = [this](const juce::String& title) { setName(title); };
         setContentOwned(content, true);
-        setResizeLimits(960, 720, 4096, 2160);
+        setResizeLimits(960, 540, 4096, 2160);
         setResizable(true, true);
         setDropShadowEnabled(true);
         centreWithSize(getWidth(), getHeight());

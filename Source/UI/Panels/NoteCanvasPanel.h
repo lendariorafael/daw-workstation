@@ -47,16 +47,6 @@ public:
             }
         }
 
-        // Bandas alternadas: quatro tempos claros e quatro tempos escuros.
-        for (int group = 0; group < 4; ++group)
-        {
-            const int x = keyWidth + juce::roundToInt(group * 4 * colW);
-            const int nextX = keyWidth + juce::roundToInt((group + 1) * 4 * colW);
-            g.setColour((group % 2 == 0) ? DawLookAndFeel::panelLight.withAlpha(0.20f)
-                                         : DawLookAndFeel::background.withAlpha(0.34f));
-            g.fillRect(x, headerHeight, juce::jmax(1, nextX - x), getHeight() - headerHeight);
-        }
-
         // Grelha de passos
         for (int s = 0; s <= ProjectModel::numSteps; ++s)
         {
@@ -108,6 +98,22 @@ public:
             return;
 
         auto& notes = model.channels[(size_t) model.selectedChannel].notes;
+
+        // Botão direito: apaga a nota sob o cursor (nota de um passo ou mais longa que cobre o passo).
+        if (e.mods.isPopupMenu())
+        {
+            for (size_t k = 0; k < notes.size(); ++k)
+            {
+                const auto& n = notes[k];
+                if (n.pitch == pitch && step >= n.step && step < n.step + n.length)
+                {
+                    notes.erase(notes.begin() + (std::ptrdiff_t) k);
+                    model.changed();
+                    return;
+                }
+            }
+            return;
+        }
 
         for (size_t k = 0; k < notes.size(); ++k)
         {

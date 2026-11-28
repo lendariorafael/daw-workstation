@@ -18,14 +18,11 @@ public:
 
     static juce::Font uiFont(float height, bool bold = false)
     {
-        return juce::Font(juce::FontOptions().withName("Segoe UI")
-                                             .withHeight(height)
-                                             .withStyle(bold ? "Bold" : "Regular"));
+        return juce::Font(juce::FontOptions().withHeight(height).withStyle(bold ? "Bold" : "Regular"));
     }
 
     DawLookAndFeel()
     {
-        setDefaultSansSerifTypefaceName("Segoe UI");
         setColour(juce::ResizableWindow::backgroundColourId, OpaloDesign::background);
         setColour(juce::DocumentWindow::backgroundColourId, OpaloDesign::surface0);
         setColour(juce::DocumentWindow::textColourId, OpaloDesign::text);
@@ -74,8 +71,6 @@ public:
         const bool on = b.getToggleState();
 
         juce::Colour fill = on ? OpaloDesign::accentDim : OpaloDesign::surface1;
-        if (b.getButtonText().contains("REC"))
-            fill = OpaloDesign::danger.withAlpha(0.88f);
         if (isButtonDown)       fill = fill.darker(0.18f);
         else if (isMouseOver)   fill = fill.brighter(0.10f);
         if (! b.isEnabled())    fill = fill.withAlpha(0.40f);

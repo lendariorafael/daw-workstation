@@ -12,11 +12,9 @@ class SettingsPanel : public juce::Component,
                       private juce::Timer
 {
 public:
-    SettingsPanel(AudioEngine& e, std::function<void()> onLanguageChanged,
-                  std::function<void(int)> onLayoutChanged)
+    SettingsPanel(AudioEngine& e, std::function<void()> onLanguageChanged)
         : engine(e),
           onLanguage(std::move(onLanguageChanged)),
-          onLayout(std::move(onLayoutChanged)),
           deviceSelector(e.devices(), 0, 2, 0, 2, false, false, true, false)
     {
         languageLabel.setText(I18n::t("settings.language"), juce::dontSendNotification);
@@ -37,21 +35,6 @@ public:
             onLanguage();
         };
 
-        layoutLabel.setText("Workspace layout", juce::dontSendNotification);
-        layoutBox.addItem("Studio Default", 1);
-        layoutBox.addItem("Arrangement Focus", 2);
-        layoutBox.addItem("Mix Focus", 3);
-        layoutBox.addItem("DJ Mashup", 4);
-        layoutBox.setSelectedId((int) OpaloSettings::get().getIntValue("layoutPreset", 0) + 1,
-                                juce::dontSendNotification);
-        layoutBox.onChange = [this]
-        {
-            const int preset = layoutBox.getSelectedId() - 1;
-            OpaloSettings::get().setValue("layoutPreset", preset);
-            OpaloSettings::get().save();
-            if (onLayout) onLayout(preset);
-        };
-
         for (int i = 0; i < 5; ++i)
             bufferBox.addItem(juce::String(bufferSizes[i]), i + 1);
         bufferBox.onChange = [this] { applyBufferSize(); };
@@ -59,8 +42,6 @@ public:
         for (auto* c : { static_cast<juce::Component*>(&languageLabel),
                          static_cast<juce::Component*>(&languageBox),
                          static_cast<juce::Component*>(&bufferLabel),
-                         static_cast<juce::Component*>(&layoutLabel),
-                         static_cast<juce::Component*>(&layoutBox),
                          static_cast<juce::Component*>(&bufferBox),
                          static_cast<juce::Component*>(&latencyLabel),
                          static_cast<juce::Component*>(&deviceSelector) })
@@ -95,11 +76,6 @@ public:
         bufferBox.setBounds(row.removeFromLeft(120));
         row.removeFromLeft(16);
         latencyLabel.setBounds(row);
-
-        area.removeFromTop(12);
-        row = area.removeFromTop(28);
-        layoutLabel.setBounds(row.removeFromLeft(160));
-        layoutBox.setBounds(row.removeFromLeft(220));
 
         area.removeFromTop(16);
         deviceSelector.setBounds(area);
@@ -171,13 +147,10 @@ private:
 
     AudioEngine& engine;
     std::function<void()> onLanguage;
-    std::function<void(int)> onLayout;
 
     juce::Label languageLabel;
     juce::ComboBox languageBox;
     juce::Label bufferLabel;
-    juce::Label layoutLabel;
-    juce::ComboBox layoutBox;
     juce::ComboBox bufferBox;
     juce::Label latencyLabel;
     juce::AudioDeviceSelectorComponent deviceSelector;

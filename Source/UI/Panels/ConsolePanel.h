@@ -12,17 +12,17 @@ public:
     explicit ChannelStrip(ProjectModel& m) : model(m)
     {
         name.setJustificationType(juce::Justification::centred);
-        name.setFont(DawLookAndFeel::uiFont(10.0f, true));
+        name.setFont(DawLookAndFeel::uiFont(12.0f, true));
         name.setColour(juce::Label::textColourId, DawLookAndFeel::text);
 
         fader.setSliderStyle(juce::Slider::LinearVertical);
-        fader.setRange(0.0, 100.0, 0.1);
+        fader.setRange(0.0, 1.0, 0.001);
         fader.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 56, 18);
         fader.onValueChange = [this]
         {
             if (auto* c = channel())
             {
-                c->volume = (float) (fader.getValue() / 100.0);
+                c->volume = (float) fader.getValue();
                 model.changed();
             }
         };
@@ -62,7 +62,7 @@ public:
         };
 
         fxList.setModel(this);
-        fxList.setRowHeight(15);
+        fxList.setRowHeight(18);
         fxList.setColour(juce::ListBox::backgroundColourId, DawLookAndFeel::background);
 
         addAndMakeVisible(name);
@@ -71,14 +71,6 @@ public:
         addAndMakeVisible(fxList);
         addAndMakeVisible(fader);
         addAndMakeVisible(pan);
-        monoButton.setClickingTogglesState(true);
-        monoButton.setButtonText("ST");
-        monoButton.setTooltip("Switch this channel between stereo and mono.");
-        monoButton.onClick = [this]
-        {
-            if (auto* ch = channel()) { ch->mono = monoButton.getToggleState(); model.changed(); }
-        };
-        addAndMakeVisible(monoButton);
     }
 
     ~ChannelStrip() override
@@ -100,12 +92,10 @@ public:
             return;
 
         name.setText(c->name, juce::dontSendNotification);
-        fader.setValue(c->volume * 100.0, juce::dontSendNotification);
+        fader.setValue(c->volume, juce::dontSendNotification);
         pan.setValue(c->pan, juce::dontSendNotification);
         mute.setToggleState(c->muted, juce::dontSendNotification);
         solo.setToggleState(c->soloed, juce::dontSendNotification);
-        monoButton.setToggleState(c->mono, juce::dontSendNotification);
-        monoButton.setButtonText(c->mono ? "MONO" : "ST");
         fxList.updateContent();
         repaint();
     }
@@ -125,18 +115,18 @@ public:
     void resized() override
     {
         auto area = getLocalBounds().reduced(6);
-        name.setBounds(area.removeFromTop(19));
+        name.setBounds(area.removeFromTop(22));
         area.removeFromTop(4);
 
-        auto row = area.removeFromTop(18);
+        auto row = area.removeFromTop(22);
         mute.setBounds(row.removeFromLeft(row.getWidth() / 2).reduced(2, 0));
         solo.setBounds(row.reduced(2, 0));
 
         area.removeFromTop(6);
-        fxList.setBounds(area.removeFromTop(4 * 15 + 4));
+        fxList.setBounds(area.removeFromTop(10 * 18 + 4));
         area.removeFromTop(6);
 
-        pan.setBounds(area.removeFromBottom(18));
+        pan.setBounds(area.removeFromBottom(22));
         area.removeFromBottom(6);
         fader.setBounds(area);
     }
@@ -233,18 +223,16 @@ private:
     juce::ListBox fxList;
     juce::Slider fader;
     juce::Slider pan;
-    juce::TextButton monoButton;
 };
 
 // Console: mixer com scroll horizontal. Só existem tiras suficientes para o que está no ecrã
 // (pool reciclado), por isso 1000 canais não criam 1000 conjuntos de componentes.
 class ConsolePanel : public juce::Component,
-                     public juce::ListBoxModel,
                      private juce::ChangeListener,
                      private juce::Timer
 {
 public:
-    static constexpr int stripWidth = 82;
+    static constexpr int stripWidth = 104;
     static constexpr int poolSize = 48;
 
     explicit ConsolePanel(ProjectModel& m) : model(m)
@@ -262,22 +250,17 @@ public:
             strips.back()->setVisible(false);
         }
 
-        masterLabel.setText("MASTER  ·  OUT", juce::dontSendNotification);
+        masterLabel.setText("MASTER", juce::dontSendNotification);
         masterLabel.setJustificationType(juce::Justification::centred);
-        masterLabel.setFont(DawLookAndFeel::uiFont(10.0f, true));
+        masterLabel.setFont(DawLookAndFeel::uiFont(12.0f, true));
         masterLabel.setColour(juce::Label::textColourId, DawLookAndFeel::accent);
         addAndMakeVisible(masterLabel);
 
-        masterFxList.setModel(this);
-        masterFxList.setRowHeight(15);
-        masterFxList.setColour(juce::ListBox::backgroundColourId, DawLookAndFeel::background);
-        addAndMakeVisible(masterFxList);
-
         masterFader.setSliderStyle(juce::Slider::LinearVertical);
-        masterFader.setRange(0.0, 100.0, 0.1);
+        masterFader.setRange(0.0, 1.0, 0.001);
         masterFader.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 56, 18);
-        masterFader.setValue(model.masterVolume * 100.0, juce::dontSendNotification);
-        masterFader.onValueChange = [this] { model.masterVolume = (float) (masterFader.getValue() / 100.0); };
+        masterFader.setValue(model.masterVolume, juce::dontSendNotification);
+        masterFader.onValueChange = [this] { model.masterVolume = (float) masterFader.getValue(); };
         addAndMakeVisible(masterFader);
 
         startTimerHz(30);
@@ -297,10 +280,8 @@ public:
     void resized() override
     {
         auto area = getLocalBounds();
-        auto master = area.removeFromLeft(126).reduced(5);
-        masterLabel.setBounds(master.removeFromTop(20));
-        masterFxList.setBounds(master.removeFromTop(4 * 15 + 6));
-        master.removeFromTop(5);
+        auto master = area.removeFromRight(128).reduced(8);
+        masterLabel.setBounds(master.removeFromTop(22));
         masterFader.setBounds(master);
         viewport.setBounds(area);
         layoutStrips();
@@ -308,7 +289,6 @@ public:
 
     void refresh()
     {
-        masterFxList.updateContent();
         layoutStrips();
         repaint();
     }
@@ -324,34 +304,6 @@ private:
         // Ao fazer scroll, recicla as tiras para os canais que entram no ecrã.
         if (viewport.getViewPositionX() / stripWidth != firstVisible)
             layoutStrips();
-    }
-
-    int getNumRows() override { return (int) model.masterEffects.size(); }
-
-    void paintListBoxItem(int row, juce::Graphics& g, int width, int height, bool selected) override
-    {
-        if (!juce::isPositiveAndBelow(row, (int)model.masterEffects.size())) return;
-        const auto& slot=model.masterEffects[(size_t)row];
-        g.fillAll(selected ? DawLookAndFeel::panelLight : DawLookAndFeel::background);
-        g.setColour(slot.isEmpty() ? DawLookAndFeel::muted : DawLookAndFeel::text);
-        g.setFont(DawLookAndFeel::uiFont(10.0f, !slot.isEmpty()));
-        g.drawText(slot.isEmpty() ? "—" : slot.name, 5, 0, width-10, height, juce::Justification::centredLeft, true);
-    }
-
-    void listBoxItemClicked(int row, const juce::MouseEvent&) override
-    {
-        auto types=model.plugins.getTypes(); juce::PopupMenu menu;
-        for(int i=0;i<types.size();++i) menu.addItem(i+1,types[i].name+" · "+types[i].pluginFormatName);
-        if(types.isEmpty()) menu.addItem(-1,"No plugins available",false);
-        menu.addSeparator(); menu.addItem(1000,"Clear slot");
-        juce::Component::SafePointer<ConsolePanel> safe(this);
-        menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&masterFxList),[safe,row,types](int result){
-            auto* self=safe.getComponent(); if(!self||result<=0||!juce::isPositiveAndBelow(row,(int)self->model.masterEffects.size())) return;
-            auto& slot=self->model.masterEffects[(size_t)row];
-            if(result==1000) slot=EffectSlot{};
-            else if(result-1<types.size()){const auto& d=types[result-1];slot.name=d.name;slot.pluginId=d.createIdentifierString();slot.bypassed=false;}
-            self->model.changed(); self->masterFxList.updateContent();
-        });
     }
 
     void layoutStrips()
@@ -387,6 +339,5 @@ private:
     std::vector<std::unique_ptr<ChannelStrip>> strips;
     int firstVisible = 0;
     juce::Label masterLabel;
-    juce::ListBox masterFxList;
     juce::Slider masterFader;
 };

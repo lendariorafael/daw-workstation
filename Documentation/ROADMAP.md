@@ -95,6 +95,30 @@ seguro é importar por formatos abertos: MIDI (já implementado), áudio (WAV, F
 - [ ] Efeitos e instrumentos VST3 a processar áudio no canal.
 - [ ] Reprodução dos passos do Beat Deck e dos clips da Playlist.
 
+## Áudio: formatos, tom e stems (em curso)
+
+- [x] Formatos de leitura: WAV, AIFF, FLAC, OGG e MP3 (descodificador do JUCE, sem dependências externas).
+- [x] Deteção de tom (chave) em segundo plano: cromagrama + perfis de Krumhansl-Schmuckler, até 2 minutos de áudio, com nível de confiança.
+- [ ] AAC/M4A, Opus e WMA: requerem FFmpeg (LGPL, ligação dinâmica). Próxima etapa, com decisão de licença.
+- [ ] Separação de stems (voz, bateria, baixo, outros): modelo de IA (por exemplo Demucs) com ONNX Runtime, processamento offline e progresso. Exige descarregar o modelo (dezenas a centenas de MB).
+- [ ] Mostrar o tom no Mashup e nos clips da Playlist.
+
+## Interface nova (em curso)
+
+- [x] Barra superior: logótipo, menus (Ficheiro, Editar, Adicionar, Padrões, Ver, Opções, Ferramentas, Ajuda) e transporte (anterior, tocar, pausa, stop, seguinte, loop).
+- [x] BPM editável, contador de tempo e uso de CPU do motor de áudio.
+- [x] Barra lateral com as categorias da biblioteca (cada uma com a sua pasta) e o Browser com informação do ficheiro (nome, autor, data e tamanho).
+- [x] Playlist no centro, com botão direito para apagar clips.
+- [x] Piano Roll, Beat Editor e Mixer como janelas independentes; apagar notas com o botão direito.
+- [x] Barra inferior com um separador por janela, para restaurar ou esconder.
+- [x] Fundo espacial gerado em código (nebulosas, estrelas e horizonte).
+- [ ] Gravação (botão desativado até existir o sistema de gravação).
+- [ ] Medidor de atividade de áudio na barra superior.
+- [ ] Ícones vetoriais finais; a versão atual usa glifos desenhados à mão.
+- [ ] Análise de áudio (espectro, RMS, dBFS) e painel de expressão MIDI do Piano Roll.
+- [ ] Menus de Add Plugin e Patterns com ações reais no motor.
+- [ ] Mudança de idioma dos separadores e das janelas abertas (só no arranque).
+
 ## Design (em curso)
 
 - [x] Tokens de design centralizados (cores em camadas, raios, espaçamentos, tipos de letra).
@@ -110,23 +134,6 @@ seguro é importar por formatos abertos: MIDI (já implementado), áudio (WAV, F
 - [x] Marca Opalo (gema de opala com brilho iridescente e nome em letras espaçadas).
 - [x] Ecrã de arranque animado.
 - [ ] Ícone do executável e da barra de tarefas.
-
-## Revisão da interface — workspace Opalo
-
-- [x] Painéis internos numa única janela principal, sem abrir janelas do sistema operativo.
-- [x] Painéis móveis e redimensionáveis dentro da área de trabalho.
-- [x] Layout padrão com Browser, Playlist, Channel Rack e Mixer visíveis em simultâneo.
-- [x] Presets de layout: Studio Default, Arrangement Focus, Mix Focus e DJ Mashup; seleção guardada nas definições.
-- [x] Barra superior organizada com File, Edit, View, Tools e Help.
-- [x] Atalhos visuais para os painéis principais.
-- [x] Transporte com Start, Play, Stop, BPM editável e controlo de volume.
-- [x] Mixer com tiras de canal mais compactas.
-- [x] Playlist com ferramentas Select, Slice, Pencil, Brush e Copy.
-- [x] Mashup com representação visual de dois decks tipo DJ e crossfader.
-- [x] Paleta com superfícies mais claras e melhor contraste; waveform preservada no rodapé.
-- [x] Definição Inno Setup e workflow Windows para gerar o instalador x64 com o runtime Microsoft.
-- [ ] Gravação de áudio de entrada: botão visível, ainda desativado até existir captura e escrita de áudio.
-- [ ] Validar visualmente a interface em execução num PC Windows e ajustar detalhes após testes de utilização.
 
 ## Fora do escopo por agora
 

@@ -4,14 +4,14 @@
 #include <array>
 #include <vector>
 
+// Modelo central do projeto. Todas as janelas leem e escrevem aqui:
+// nunca existem duas cópias do mesmo estado.
+
 struct Note
 {
     int step = 0;
     int length = 1;
     int pitch = 60;
-    float velocity = 0.8f;
-    bool slide = false;
-    bool palmMute = false;
 };
 
 struct Clip
@@ -21,29 +21,14 @@ struct Clip
     int lengthBars = 1;
 };
 
-struct PatternData
-{
-    juce::String name;
-    juce::Colour colour;
-    int lengthBars = 1;
-};
-
+// Um slot de efeito guarda apenas a identidade do plugin escolhido no Plugin Vault.
 struct EffectSlot
 {
     juce::String name;
     juce::String pluginId;
     bool bypassed = false;
+
     bool isEmpty() const { return pluginId.isEmpty(); }
-};
-
-struct AutomationPoint { double time = 0.0; float value = 0.0f; };
-
-struct AutomationLane
-{
-    juce::String name;
-    juce::String target;
-    juce::Colour colour = juce::Colour(0xff62cdbb);
-    std::vector<AutomationPoint> points;
 };
 
 struct ChannelData
@@ -52,11 +37,9 @@ struct ChannelData
 
     juce::String name;
     juce::Colour colour;
-    juce::String samplePath;
+    juce::String samplePath;   // ficheiro de som atribuído a partir do Browser
     bool muted = false;
     bool soloed = false;
-    bool mono = false;
-    int outputBus = 0; // 0 = MASTER
     float volume = 0.8f;
     float pan = 0.0f;
     std::array<bool, 16> steps {};
@@ -67,42 +50,49 @@ struct ChannelData
 class ProjectModel : public juce::ChangeBroadcaster
 {
 public:
-    static constexpr int maxChannels = 250;
-    static constexpr int initialChannels = 8;
+    static constexpr int maxChannels = 1000;
+    static constexpr int initialChannels = 20;
     static constexpr int numSteps = 16;
     static constexpr int maxEffectsPerChannel = ChannelData::kMaxEffects;
 
-    ProjectModel() { resetToDefault(); }
+    ProjectModel()
+    {
+        resetToDefault();
+    }
 
+    // Projeto novo: 20 canais com um padrão de exemplo.
     void resetToDefault()
     {
         channels.clear();
         clips.clear();
-        patterns.clear();
-        automationLanes.clear();
-        masterEffects.assign(ChannelData::kMaxEffects, EffectSlot{});
         selectedChannel = 0;
-        selectedPattern = 0;
         bpm = 120.0;
         masterVolume = 0.8f;
 
-        for (int i = 0; i < initialChannels; ++i)
-            addChannel("Track " + juce::String(i + 1), paletteColour(i));
+        addChannel("Kick",  paletteColour(0));
+        addChannel("Snare", paletteColour(1));
+        addChannel("Hat",   paletteColour(2));
+        addChannel("Bass",  paletteColour(3));
 
-        patterns.push_back({ "Pattern 1", paletteColour(0), 1 });
+        for (int i = 4; i < initialChannels; ++i)
+            addChannel("Channel " + juce::String(i + 1), paletteColour(i));
+
+        for (int s = 0; s < numSteps; s += 4) channels[0].steps[(size_t) s] = true;
+        channels[1].steps[4] = true;
+        channels[1].steps[12] = true;
+        for (int s = 0; s < numSteps; s += 2) channels[2].steps[(size_t) s] = true;
+
         sendChangeMessage();
     }
 
     std::vector<ChannelData> channels;
     std::vector<Clip> clips;
-    std::vector<PatternData> patterns;
     int selectedChannel = 0;
-    int selectedPattern = 0;
     double bpm = 120.0;
     float masterVolume = 0.8f;
-    std::vector<EffectSlot> masterEffects = std::vector<EffectSlot>(ChannelData::kMaxEffects);
-    std::vector<AutomationLane> automationLanes;
-    double playheadSeconds = 0.0;
+    double playheadSeconds = 0.0; // atualizado pelo motor, sem notificar
+
+    // Lista de plugins encontrados pelo scan. Partilhada pelo Plugin Vault e pelo Console.
     juce::KnownPluginList plugins;
 
     double secondsPerBar() const { return 4.0 * 60.0 / bpm; }
@@ -111,6 +101,7 @@ public:
     {
         if ((int) channels.size() >= maxChannels)
             return false;
+
         ChannelData c;
         c.name = name;
         c.colour = colour;

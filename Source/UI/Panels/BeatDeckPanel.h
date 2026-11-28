@@ -18,8 +18,7 @@ public:
         addButton.onClick = [this]
         {
             const int n = (int) model.channels.size() + 1;
-            if (n <= ProjectModel::maxChannels)
-                model.addChannel("Track " + juce::String(n), ProjectModel::paletteColour(n - 1));
+            model.addChannel("Channel " + juce::String(n), ProjectModel::paletteColour(n - 1));
         };
     }
 
@@ -34,8 +33,8 @@ public:
 
         g.setColour(DawLookAndFeel::muted);
         g.setFont(DawLookAndFeel::uiFont(11.0f, true));
-        g.drawText("TRACK", 16, 0, nameWidth, headerHeight, juce::Justification::centredLeft, false);
-        g.drawText("PATTERN STEPS", nameWidth + 12, 0, 200, headerHeight, juce::Justification::centredLeft, false);
+        g.drawText("CHANNEL", 16, 0, nameWidth, headerHeight, juce::Justification::centredLeft, false);
+        g.drawText("STEPS", nameWidth + 12, 0, 200, headerHeight, juce::Justification::centredLeft, false);
 
         const int channels = (int) model.channels.size();
         const int first = juce::jlimit(0, channels, (scrollY / rowHeight));
@@ -60,28 +59,17 @@ public:
             drawToggle(g, muteRect(i), "M", ch.muted, ch.colour);
             drawToggle(g, soloRect(i), "S", ch.soloed, ch.colour);
 
-            for (int group = 0; group < 4; ++group)
-            {
-                const int firstStep = group * 4;
-                const int x = stepRect(i, firstStep).getX();
-                const int right = stepRect(i, firstStep + 3).getRight();
-                g.setColour((group % 2 == 0) ? DawLookAndFeel::panelLight.withAlpha(0.42f)
-                                             : DawLookAndFeel::background.withAlpha(0.32f));
-                g.fillRoundedRectangle(juce::Rectangle<float>((float) x - 2.0f, (float) row.getY() + 5.0f,
-                                                               (float) (right - x) + 4.0f, (float) row.getHeight() - 10.0f), 4.0f);
-            }
-
             for (int s = 0; s < ProjectModel::numSteps; ++s)
             {
                 const auto cell = stepRect(i, s).toFloat();
                 const bool on = ch.steps[(size_t) s];
-                const bool beat = ((s / 4) % 2) == 0;
+                const bool beat = (s % 4) == 0;
 
                 if (on)
                     g.setColour(ch.colour);
                 else
                     g.setColour(beat ? DawLookAndFeel::panelLight.brighter(0.10f)
-                                     : DawLookAndFeel::background.brighter(0.10f));
+                                     : DawLookAndFeel::panel.brighter(0.04f));
 
                 g.fillRoundedRectangle(cell, 4.0f);
             }
@@ -158,9 +146,9 @@ private:
     }
 
     static constexpr int headerHeight = 32;
-    static constexpr int rowHeight = 38;
+    static constexpr int rowHeight = 44;
     static constexpr int nameWidth = 240;
-    static constexpr int stepGap = 4;
+    static constexpr int stepGap = 6;
 
     juce::Rectangle<int> rowBounds(int i) const
     {
@@ -184,12 +172,12 @@ private:
         const auto r = rowBounds(i);
         const int gridX = nameWidth + 12;
         const float gridW = (float) (getWidth() - gridX - 12);
-        const float cellW = juce::jmin(26.0f, (gridW - (ProjectModel::numSteps - 1) * stepGap) / (float) ProjectModel::numSteps);
+        const float cellW = (gridW - (ProjectModel::numSteps - 1) * stepGap) / (float) ProjectModel::numSteps;
         const int x = gridX + juce::roundToInt(s * (cellW + stepGap));
-        return { x, r.getY() + 10, juce::roundToInt(cellW), rowHeight - 20 };
+        return { x, r.getY() + 8, juce::roundToInt(cellW), rowHeight - 16 };
     }
 
     ProjectModel& model;
     int scrollY = 0;
-    juce::TextButton addButton { "+ Track" };
+    juce::TextButton addButton { "+ Channel" };
 };

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <juce_gui_basics/juce_gui_basics.h>
-#include <cmath>
 #include "../../AudioEngine/AudioEngine.h"
+#include "../../Audio/AudioFormats.h"
 #include "../../I18n/Strings.h"
 #include "../../Model/ProjectModel.h"
 #include "../DawLookAndFeel.h"
@@ -60,43 +60,11 @@ public:
         for (int i = 0; i < AudioEngine::numDecks; ++i)
         {
             const auto area = deckArea(i);
-            const auto deckColour = i == 0 ? DawLookAndFeel::accent
-                                           : juce::Colour((juce::uint32) 0xffffb86b);
-            g.setColour(DawLookAndFeel::panelLight);
-            g.fillRoundedRectangle(area.toFloat(), 12.0f);
-            g.setColour(deckColour.withAlpha(0.85f));
-            g.fillRoundedRectangle(juce::Rectangle<float>((float) area.getX() + 12.0f,
-                (float) area.getY() + 12.0f, 4.0f, (float) area.getHeight() - 24.0f), 2.0f);
+            g.setColour(DawLookAndFeel::panel);
+            g.fillRoundedRectangle(area.toFloat(), 10.0f);
 
-            // Prato de vinil e anéis concêntricos para uma leitura visual de mesa de DJ.
-            const float diameter = juce::jmin(juce::jmin(210.0f, (float) area.getHeight() - 42.0f),
-                                              (float) area.getWidth() * 0.48f);
-            const juce::Rectangle<float> platter((float) area.getRight() - diameter - 20.0f,
-                (float) area.getCentreY() - diameter * 0.5f, diameter, diameter);
-            g.setColour(juce::Colour((juce::uint32) 0xff11151b));
-            g.fillEllipse(platter);
-            g.setColour(DawLookAndFeel::text.withAlpha(0.12f));
-            for (int ring = 1; ring <= 7; ++ring)
-                g.drawEllipse(platter.reduced((float) ring * diameter * 0.055f), 1.0f);
-
-            const auto label = platter.reduced(diameter * 0.34f);
-            g.setColour(deckColour.withAlpha(0.9f));
-            g.fillEllipse(label);
-            g.setColour(DawLookAndFeel::background);
-            g.fillEllipse(label.reduced(diameter * 0.10f));
-
-            const float phase = (float) std::fmod(juce::Time::getMillisecondCounterHiRes() * 0.0008, 6.2831853);
-            const juce::Point<float> centre = platter.getCentre();
-            g.setColour(DawLookAndFeel::text.withAlpha(0.75f));
-            g.drawLine(centre.x, centre.y,
-                       centre.x + std::cos(phase + i * 0.8f) * diameter * 0.43f,
-                       centre.y + std::sin(phase + i * 0.8f) * diameter * 0.43f, 2.0f);
-
-            g.setColour(deckColour);
-            g.setFont(DawLookAndFeel::uiFont(10.0f, true));
-            g.drawText(i == 0 ? "DECK A  /  LEFT" : "DECK B  /  RIGHT",
-                       area.getX() + 22, area.getBottom() - 28, 180, 16,
-                       juce::Justification::centredLeft, false);
+            g.setColour(i == 0 ? DawLookAndFeel::accent : DawLookAndFeel::text.withAlpha(0.6f));
+            g.fillRect(area.getX() + 14, area.getY() + 14, 3, 18);
         }
     }
 
@@ -208,7 +176,7 @@ private:
     {
         auto& ui = decksUi[(size_t) i];
         ui.chooser = std::make_unique<juce::FileChooser>("Open audio file", juce::File{},
-                                                         "*.wav;*.aif;*.aiff;*.flac;*.ogg");
+                                                         OpaloAudioFormats::audioWildcard());
         ui.chooser->launchAsync(juce::FileBrowserComponent::openMode
                                     | juce::FileBrowserComponent::canSelectFiles,
                                 [this, i](const juce::FileChooser& fc)
@@ -250,7 +218,6 @@ private:
                                  + "   ·   " + juce::String(engine.deckRatio(i), 3) + "x",
                              juce::dontSendNotification);
         }
-        repaint();
     }
 
     static juce::String formatTime(double seconds)
