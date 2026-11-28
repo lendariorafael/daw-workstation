@@ -207,35 +207,38 @@ public:
 
     void resized() override
     {
-        auto top = getLocalBounds().removeFromTop(38).reduced(OpaloDesign::space3, 4);
-        logo.setBounds(top.removeFromLeft(150));
-        top.removeFromLeft(OpaloDesign::space3);
+        const bool compact = getWidth() < 900;
+        const bool veryCompact = getWidth() < 720;
 
+        auto top = getLocalBounds().removeFromTop(38).reduced(compact ? 6 : OpaloDesign::space3, 4);
+        const int logoWidth = compact ? 104 : 150;
+        logo.setBounds(top.removeFromLeft(logoWidth));
+        top.removeFromLeft(compact ? 4 : OpaloDesign::space3);
+
+        const int count = juce::jmax(1, (int) menus.size());
+        const int menuWidth = juce::jlimit(39, 78, top.getWidth() / count);
         for (auto& m : menus)
         {
-            const int w = juce::jmax(56, (int) DawLookAndFeel::textWidth(DawLookAndFeel::uiFont(OpaloDesign::fontBody), m->getButtonText()) + 24);
-            m->setBounds(top.removeFromLeft(w));
+            m->setBounds(top.removeFromLeft(menuWidth));
         }
 
-        auto row = getLocalBounds().withTrimmedTop(40).reduced(OpaloDesign::space3, 0);
+        auto row = getLocalBounds().withTrimmedTop(40).reduced(compact ? 6 : OpaloDesign::space3, 0);
+        const int cpuWidth = veryCompact ? 54 : (compact ? 68 : 120);
+        cpuLabel.setBounds(row.removeFromRight(cpuWidth));
+        row.removeFromRight(compact ? 3 : OpaloDesign::space3);
 
-        cpuLabel.setBounds(row.removeFromRight(120));
-        row.removeFromRight(OpaloDesign::space3);
+        const int btn = veryCompact ? 23 : (compact ? 27 : 36);
+        for (auto* b : { recordButton.get(), previousButton.get(), playButton.get(), pauseButton.get(),
+                         stopButton.get(), nextButton.get(), loopButton.get() })
+            b->setBounds(row.removeFromLeft(btn));
 
-        const int btn = 36;
-        recordButton->setBounds(row.removeFromLeft(btn));
-        previousButton->setBounds(row.removeFromLeft(btn));
-        playButton->setBounds(row.removeFromLeft(btn));
-        pauseButton->setBounds(row.removeFromLeft(btn));
-        stopButton->setBounds(row.removeFromLeft(btn));
-        nextButton->setBounds(row.removeFromLeft(btn));
-        loopButton->setBounds(row.removeFromLeft(btn));
-        row.removeFromLeft(OpaloDesign::space3);
+        row.removeFromLeft(compact ? 4 : OpaloDesign::space3);
+        const int bpmWidth = veryCompact ? 82 : (compact ? 104 : 170);
+        bpmLabel.setBounds(row.removeFromLeft(juce::jmin(bpmWidth, row.getWidth())).reduced(0, 10));
+        row.removeFromLeft(compact ? 4 : OpaloDesign::space3);
 
-        bpmLabel.setBounds(row.removeFromLeft(170).reduced(0, 10));
-        row.removeFromLeft(OpaloDesign::space3);
-
-        timeLabel.setBounds(row.removeFromLeft(190));
+        const int timeWidth = veryCompact ? 100 : (compact ? 126 : 190);
+        timeLabel.setBounds(row.removeFromLeft(juce::jmin(timeWidth, row.getWidth())));
     }
 
 private:
