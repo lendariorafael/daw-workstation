@@ -239,6 +239,14 @@ public:
     {
         model.addChangeListener(this);
 
+        addAndMakeVisible(addChannelButton);
+        addChannelButton.setTooltip("Adicionar canal ao Mixer");
+        addChannelButton.onClick = [this]
+        {
+            const int n = (int) model.channels.size() + 1;
+            model.addChannel("Insert " + juce::String(n), ProjectModel::paletteColour(n - 1));
+        };
+
         addAndMakeVisible(viewport);
         viewport.setViewedComponent(&host, false);
         viewport.setScrollBarsShown(false, true);
@@ -275,11 +283,20 @@ public:
     void paint(juce::Graphics& g) override
     {
         g.fillAll(DawLookAndFeel::background);
+        g.setColour(DawLookAndFeel::text);
+        g.setFont(DawLookAndFeel::uiFont(12.0f, true));
+        g.drawText("MIXER CHANNELS", 10, 0, 180, 26, juce::Justification::centredLeft, false);
+        g.setColour(DawLookAndFeel::muted);
+        g.setFont(DawLookAndFeel::uiFont(10.0f));
+        g.drawText(juce::String(model.channels.size()) + " channels", 150, 0, 100, 26,
+                   juce::Justification::centredLeft, false);
     }
 
     void resized() override
     {
         auto area = getLocalBounds();
+        auto header = area.removeFromTop(28);
+        addChannelButton.setBounds(header.removeFromRight(34).reduced(3, 2));
         auto master = area.removeFromRight(128).reduced(8);
         masterLabel.setBounds(master.removeFromTop(22));
         masterFader.setBounds(master);
@@ -334,6 +351,7 @@ private:
     }
 
     ProjectModel& model;
+    juce::TextButton addChannelButton { "+" };
     juce::Viewport viewport;
     juce::Component host;
     std::vector<std::unique_ptr<ChannelStrip>> strips;
