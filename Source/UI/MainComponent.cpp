@@ -554,7 +554,7 @@ void MainComponent::paint(juce::Graphics& g)
 
 void MainComponent::resized()
 {
-    const auto area = getLocalBounds();
+    auto area = getLocalBounds();
 
     topBar.setBounds(area.removeFromTop(topBarHeight));
     taskBar.setBounds(area.removeFromBottom(TaskBar::height));
