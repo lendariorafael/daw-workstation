@@ -35,7 +35,7 @@ public:
 class TaskBar : public juce::Component
 {
 public:
-    static constexpr int height = 36;
+    static constexpr int height = 38;
 
     int addTab(const juce::String& title, std::function<void()> onClick)
     {
@@ -81,10 +81,12 @@ public:
     void resized() override
     {
         auto area = getLocalBounds().reduced(OpaloDesign::space2, 0);
-        status.setBounds(area.removeFromRight(200).withTrimmedRight(18));
+        status.setBounds(area.removeFromRight(juce::jmin(190, area.getWidth() / 4)).withTrimmedRight(18));
 
+        const int count = (int) tabs.size();
+        const int tabWidth = count > 0 ? juce::jlimit(76, 128, area.getWidth() / count) : 0;
         for (auto& t : tabs)
-            t->setBounds(area.removeFromLeft(128));
+            t->setBounds(area.removeFromLeft(tabWidth));
     }
 
 private:

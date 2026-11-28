@@ -6,7 +6,7 @@ namespace
     constexpr int historyDelayTicks = 6;     // ~200 ms de pausa antes de registar uma alteração
     constexpr int autosaveIntervalTicks = 30 * 60;
     constexpr int topBarHeight = TopBar::height;
-    constexpr int sidebarWidth = 280;
+    constexpr int sidebarWidth = 224;
 }
 
 MainComponent::MainComponent()
@@ -15,7 +15,7 @@ MainComponent::MainComponent()
 
     juce::LookAndFeel::setDefaultLookAndFeel(&lookAndFeel);
     setWantsKeyboardFocus(true);
-    setSize(1440, 860);
+    setSize(1200, 760);
 
     topBar.onMenu = [this](const juce::String& key) { showMenu(key); };
     topBar.onPlay = [this] { engine.play(); };
@@ -29,28 +29,41 @@ MainComponent::MainComponent()
     addAndMakeVisible(topBar);
     addAndMakeVisible(taskBar);
     addAndMakeVisible(sidebar);
-    addAndMakeVisible(playlist);
 
-    // Janelas independentes (começam escondidas).
-    consoleWindow  = std::make_unique<PanelWindow>(I18n::t("view.mixer"), new ConsolePanel(model),     1280, 640);
-    noteWindow     = std::make_unique<PanelWindow>("Piano Roll",           new NoteCanvasPanel(model), 980, 640);
-    beatWindow     = std::make_unique<PanelWindow>("Beat Editor",          new BeatDeckPanel(model),   880, 520);
-    mashupWindow   = std::make_unique<PanelWindow>(I18n::t("view.mashup"), new MashupPanel(model, engine), 1000, 560);
-    vaultWindow    = std::make_unique<PanelWindow>(I18n::t("view.vault"),  new PluginVaultPanel(model), 760, 520);
+    // Workspace integrado: os quatro painéis da referência são componentes internos,
+    // visíveis desde o arranque e sobre o fundo espacial.
+    playlistWindow = std::make_unique<PanelWindow>("Playlist - Arrangement", new TimelinePanel(model), 900, 360);
+    consoleWindow  = std::make_unique<PanelWindow>(I18n::t("view.mixer"), new ConsolePanel(model), 760, 330);
+    noteWindow     = std::make_unique<PanelWindow>("Piano Roll - Melody", new NoteCanvasPanel(model), 560, 330);
+    beatWindow     = std::make_unique<PanelWindow>("Beat Editor", new BeatDeckPanel(model), 420, 260);
+    mashupWindow   = std::make_unique<PanelWindow>(I18n::t("view.mashup"), new MashupPanel(model, engine), 720, 420);
+    vaultWindow    = std::make_unique<PanelWindow>(I18n::t("view.vault"), new PluginVaultPanel(model), 520, 360);
     settingsWindow = std::make_unique<PanelWindow>(I18n::t("settings.title"),
                                                    new SettingsPanel(engine, [this] { refreshTexts(); }),
-                                                   660, 560);
+                                                   500, 360);
 
-    // Barra inferior: uma aba por janela. A playlist está sempre visível.
-    taskBar.addTab(I18n::t("tab.playlist"), [this] { playlist.grabKeyboardFocus(); });
+    addAndMakeVisible(*playlistWindow);
+    addAndMakeVisible(*consoleWindow);
+    addAndMakeVisible(*noteWindow);
+    addAndMakeVisible(*beatWindow);
+    addChildComponent(*mashupWindow);
+    addChildComponent(*vaultWindow);
+    addChildComponent(*settingsWindow);
+
+    // Barra inferior: quatro painéis principais e ferramentas auxiliares.
+    tabPlaylist = taskBar.addTab(I18n::t("tab.playlist"), [this] { toggleWindow(*playlistWindow); });
     tabMixer    = taskBar.addTab(I18n::t("view.mixer"),  [this] { toggleWindow(*consoleWindow); });
     tabPiano    = taskBar.addTab("Piano Roll",            [this] { toggleWindow(*noteWindow); });
     tabBeat     = taskBar.addTab("Beat Editor",           [this] { toggleWindow(*beatWindow); });
     tabMashup   = taskBar.addTab(I18n::t("view.mashup"), [this] { toggleWindow(*mashupWindow); });
     tabVault    = taskBar.addTab(I18n::t("view.vault"),  [this] { toggleWindow(*vaultWindow); });
     tabSettings = taskBar.addTab(I18n::t("view.settings"), [this] { toggleWindow(*settingsWindow); });
-    taskBar.setTabActive(0, true);
+    taskBar.setTabActive(tabPlaylist, true);
+    taskBar.setTabActive(tabMixer, true);
+    taskBar.setTabActive(tabPiano, true);
+    taskBar.setTabActive(tabBeat, true);
 
+    bindWindow(*playlistWindow, tabPlaylist);
     bindWindow(*consoleWindow,  tabMixer);
     bindWindow(*noteWindow,     tabPiano);
     bindWindow(*beatWindow,     tabBeat);
@@ -197,7 +210,7 @@ void MainComponent::handleMenu(int id)
         case 30: beatWindow->setVisible(true);  beatWindow->toFront(true);  break;
         case 31:
         case 42: noteWindow->setVisible(true);  noteWindow->toFront(true);  break;
-        case 40: playlist.grabKeyboardFocus(); break;
+        case 40: playlistWindow->setVisible(true); playlistWindow->toFront(true); break;
         case 41: consoleWindow->setVisible(true); consoleWindow->toFront(true); break;
         case 43: beatWindow->setVisible(true);  beatWindow->toFront(true);  break;
         case 44: mashupWindow->setVisible(true); mashupWindow->toFront(true); break;
@@ -558,8 +571,40 @@ void MainComponent::resized()
 
     topBar.setBounds(area.removeFromTop(topBarHeight));
     taskBar.setBounds(area.removeFromBottom(TaskBar::height));
-    sidebar.setBounds(area.removeFromLeft(sidebarWidth));
-    playlist.setBounds(area);
+    const int adaptiveSidebarWidth = juce::jlimit(148, sidebarWidth, getWidth() / 5);
+    sidebar.setBounds(area.removeFromLeft(adaptiveSidebarWidth));
+
+    // Layout proporcional à resolução. Em ecrãs largos, segue a composição da imagem:
+    // Playlist no topo, Beat Editor sobre o canto superior direito, Mixer em baixo à
+    // esquerda e Piano Roll em baixo à direita. Em ecrãs compactos, os painéis ficam
+    // em quadrantes para continuarem acessíveis sem exceder os limites do monitor.
+    const int gap = juce::jmax(4, getWidth() / 320);
+    const int workspaceW = juce::jmax(1, area.getWidth());
+    const int workspaceH = juce::jmax(1, area.getHeight());
+    const int x = area.getX();
+    const int y = area.getY();
+
+    if (workspaceW >= 1050 && workspaceH >= 560)
+    {
+        const int playlistW = (int) (workspaceW * 0.73f);
+        const int playlistH = (int) (workspaceH * 0.53f);
+        playlistWindow->setWorkspaceBounds({ x + gap, y + gap, playlistW, playlistH });
+        beatWindow->setWorkspaceBounds({ x + (int) (workspaceW * 0.68f), y + (int) (workspaceH * 0.16f),
+                                         workspaceW - (int) (workspaceW * 0.68f) - gap, (int) (workspaceH * 0.40f) });
+        consoleWindow->setWorkspaceBounds({ x + gap, y + (int) (workspaceH * 0.54f),
+                                            (int) (workspaceW * 0.56f), workspaceH - (int) (workspaceH * 0.54f) - gap });
+        noteWindow->setWorkspaceBounds({ x + (int) (workspaceW * 0.58f), y + (int) (workspaceH * 0.54f),
+                                          workspaceW - (int) (workspaceW * 0.58f) - gap, workspaceH - (int) (workspaceH * 0.54f) - gap });
+    }
+    else
+    {
+        const int halfW = juce::jmax(220, (workspaceW - gap * 3) / 2);
+        const int halfH = juce::jmax(150, (workspaceH - gap * 3) / 2);
+        playlistWindow->setWorkspaceBounds({ x + gap, y + gap, halfW, halfH });
+        beatWindow->setWorkspaceBounds({ x + gap * 2 + halfW, y + gap, halfW, halfH });
+        consoleWindow->setWorkspaceBounds({ x + gap, y + gap * 2 + halfH, halfW, halfH });
+        noteWindow->setWorkspaceBounds({ x + gap * 2 + halfW, y + gap * 2 + halfH, halfW, halfH });
+    }
 
     if (splash != nullptr)
         splash->setBounds(getLocalBounds());
