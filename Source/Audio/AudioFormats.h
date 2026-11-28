@@ -19,10 +19,7 @@ namespace OpaloAudioFormats
     // Padrão de extensões para as janelas de abrir ficheiro.
     inline juce::String audioWildcard()
     {
-        // Extensões descodificadas pelos leitores registados abaixo.
-        // Não anunciar AAC/M4A, Opus ou WMA enquanto não existir um decoder
-        // correspondente ligado ao projeto.
-        juce::String s = "*.wav;*.wave;*.aif;*.aiff;*.flac;*.ogg";
+        juce::String s = "*.wav;*.aif;*.aiff;*.flac;*.ogg";
 
 #if JUCE_USE_MP3AUDIOFORMAT
         s += ";*.mp3";

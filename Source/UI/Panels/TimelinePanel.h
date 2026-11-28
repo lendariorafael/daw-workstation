@@ -188,33 +188,20 @@ public:
             return;
         }
 
-        // Menu contextual: a eliminação só acontece depois de escolher a ação.
+        // Botão direito: apaga o clip sob o cursor, se existir.
         if (e.mods.isPopupMenu())
         {
             const int bar = juce::jlimit(0, totalBars - 1, (int) ((p.x - nameWidth) / barWidth()));
-            bool hasClip = false;
-            for (const auto& clip : model.clips)
-                if (clip.channel == row && bar >= clip.startBar && bar < clip.startBar + clip.lengthBars)
-                    hasClip = true;
-
-            juce::PopupMenu menu;
-            if (hasClip)
+            for (size_t k = 0; k < model.clips.size(); ++k)
             {
-                menu.addItem(1, "Eliminar clip");
-                menu.addItem(2, "Duplicar clip");
-            }
-            else
-            {
-                menu.addItem(3, "Criar clip");
-            }
-
-            juce::Component::SafePointer<TimelinePanel> safe(this);
-            menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(this),
-                [safe, row, bar](int result)
+                const auto& c = model.clips[k];
+                if (c.channel == row && bar >= c.startBar && bar < c.startBar + c.lengthBars)
                 {
-                    if (auto* self = safe.getComponent())
-                        self->handleClipContextAction(result, row, bar);
-                });
+                    model.clips.erase(model.clips.begin() + (std::ptrdiff_t) k);
+                    model.changed();
+                    return;
+                }
+            }
             return;
         }
 
@@ -241,32 +228,6 @@ public:
     }
 
 private:
-    void handleClipContextAction(int action, int row, int bar)
-    {
-        for (size_t k = 0; k < model.clips.size(); ++k)
-        {
-            const auto clip = model.clips[k];
-            if (clip.channel != row || bar < clip.startBar || bar >= clip.startBar + clip.lengthBars)
-                continue;
-
-            if (action == 1)
-                model.clips.erase(model.clips.begin() + (std::ptrdiff_t) k);
-            else if (action == 2)
-                model.clips.push_back(Clip { clip.channel, clip.startBar + clip.lengthBars, clip.lengthBars });
-            else
-                return;
-
-            model.changed();
-            return;
-        }
-
-        if (action == 3)
-        {
-            model.clips.push_back(Clip { row, bar, 1 });
-            model.changed();
-        }
-    }
-
     // Corta o clip sob o cursor no compasso mais próximo. Só corta dentro de um clip.
     void cutAt(int row, int x)
     {

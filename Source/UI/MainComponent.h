@@ -94,9 +94,9 @@ private:
     TopBar topBar;
     TaskBar taskBar;
     SidebarPanel sidebar { model };
-    TimelinePanel playlist { model };
+    std::unique_ptr<PanelWindow> playlistWindow;
 
-    int tabMixer = -1, tabPiano = -1, tabBeat = -1, tabMashup = -1, tabVault = -1, tabSettings = -1;
+    int tabPlaylist = -1, tabMixer = -1, tabPiano = -1, tabBeat = -1, tabMashup = -1, tabVault = -1, tabSettings = -1;
 
     std::unique_ptr<juce::FileChooser> audioChooser;
     std::unique_ptr<juce::FileChooser> projectChooser;

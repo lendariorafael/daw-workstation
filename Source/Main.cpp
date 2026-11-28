@@ -10,25 +10,19 @@ public:
     explicit MainWindow(const juce::String& name)
         : DocumentWindow(name, DawLookAndFeel::background, DocumentWindow::allButtons)
     {
-        // Usar a barra nativa do Windows garante minimizar, maximizar e fechar
-        // mesmo em ecrãs pequenos e com escalas de DPI diferentes.
-        setUsingNativeTitleBar(true);
+        // Barra de título própria do Opalo, com os botões de janela no canto superior esquerdo.
+        setUsingNativeTitleBar(false);
+        setTitleBarHeight(40);
         setTitleBarButtonsRequired(DocumentWindow::allButtons, true);
+        setTitleBarTextCentred(true);
 
         auto* content = new MainComponent();
         content->onTitleChanged = [this](const juce::String& title) { setName(title); };
         setContentOwned(content, true);
-        setResizeLimits(640, 420, 4096, 2160);
+        setResizeLimits(960, 540, 4096, 2160);
         setResizable(true, true);
         setDropShadowEnabled(true);
-
-        const auto displays = juce::Desktop::getInstance().getDisplays();
-        const auto* display = displays.getPrimaryDisplay();
-        const auto area = display != nullptr ? display->userArea
-                                             : juce::Rectangle<int>(0, 0, 1280, 720);
-        const int initialWidth = juce::jmax(640, juce::jmin(1280, area.getWidth() - 40));
-        const int initialHeight = juce::jmax(420, juce::jmin(760, area.getHeight() - 80));
-        centreWithSize(initialWidth, initialHeight);
+        centreWithSize(getWidth(), getHeight());
         setVisible(true);
     }
 

@@ -99,27 +99,19 @@ public:
 
         auto& notes = model.channels[(size_t) model.selectedChannel].notes;
 
-        // Menu contextual da nota: permite eliminar sem apagar acidentalmente.
+        // Botão direito: apaga a nota sob o cursor (nota de um passo ou mais longa que cobre o passo).
         if (e.mods.isPopupMenu())
         {
-            bool hasNote = false;
-            for (const auto& note : notes)
-                if (note.pitch == pitch && step >= note.step && step < note.step + note.length)
-                    hasNote = true;
-
-            juce::PopupMenu menu;
-            if (hasNote)
-                menu.addItem(1, "Eliminar nota");
-            else
-                menu.addItem(2, "Criar nota");
-
-            juce::Component::SafePointer<NoteCanvasPanel> safe(this);
-            menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(this),
-                [safe, pitch, step](int result)
+            for (size_t k = 0; k < notes.size(); ++k)
+            {
+                const auto& n = notes[k];
+                if (n.pitch == pitch && step >= n.step && step < n.step + n.length)
                 {
-                    if (auto* self = safe.getComponent())
-                        self->handleNoteContextAction(result, pitch, step);
-                });
+                    notes.erase(notes.begin() + (std::ptrdiff_t) k);
+                    model.changed();
+                    return;
+                }
+            }
             return;
         }
 
@@ -138,33 +130,6 @@ public:
     }
 
 private:
-    void handleNoteContextAction(int action, int pitch, int step)
-    {
-        if (model.channels.empty())
-            return;
-
-        auto& notes = model.channels[(size_t) model.selectedChannel].notes;
-        for (size_t k = 0; k < notes.size(); ++k)
-        {
-            const auto& note = notes[k];
-            if (note.pitch == pitch && step >= note.step && step < note.step + note.length)
-            {
-                if (action == 1)
-                {
-                    notes.erase(notes.begin() + (std::ptrdiff_t) k);
-                    model.changed();
-                }
-                return;
-            }
-        }
-
-        if (action == 2)
-        {
-            notes.push_back(Note { step, 1, pitch });
-            model.changed();
-        }
-    }
-
     void changeListenerCallback(juce::ChangeBroadcaster*) override
     {
         repaint();
